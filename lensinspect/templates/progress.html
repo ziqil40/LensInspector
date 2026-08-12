@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}My progress | Lens Inspector{% endblock %}
+{% block wrap_class %}wrap-narrow{% endblock %}
+{% block content %}
+
+<h1>My progress</h1>
+<p class="lede">
+  How far you have got, signed in as <strong>{{ inspector['netid'] }}</strong>.
+</p>
+
+{% for row in rows %}
+{% set g = row['group'] %}
+{% set m = row['mine'] %}
+<div class="card" style="margin-bottom:16px;">
+  <div class="row" style="justify-content:space-between; align-items:flex-start;">
+    <h3 style="margin:0;">{{ g['name'] }}</h3>
+    {% if m['skipped'] %}
+      <span class="pill pill-warn">{{ m['skipped'] }} still unsure</span>
+    {% elif m['finished'] %}
+      <span class="pill pill-good">All graded</span>
+    {% elif m['graded'] %}
+      <span class="pill">In progress</span>
+    {% else %}
+      <span class="pill pill-quiet">Not started</span>
+    {% endif %}
+  </div>
+
+  <div class="bar" style="margin:14px 0 10px;">
+    <div class="bar-fill {% if m['finished'] %}is-done{% endif %}"
+         style="width: {{ m['percent'] }}%;"></div>
+  </div>
+
+  <div style="color:var(--muted); font-size:0.92rem;">
+    You have graded <strong>{{ m['graded'] }}</strong> of
+    <strong>{{ m['total'] }}</strong>
+    {%- if m['skipped'] %}, with <strong>{{ m['skipped'] }}</strong> still marked
+    unsure{% endif %}
+    {%- if m['unseen'] %}, and <strong>{{ m['unseen'] }}</strong> not looked at
+    yet{% endif %}.
+  </div>
+
+  <div class="row" style="margin-top:16px;">
+    {% if m['unseen'] %}
+    <a class="btn btn-sm" href="{{ url_for('main.inspect_page', slug=g['slug']) }}">Carry on</a>
+    {% endif %}
+    {% if m['skipped'] %}
+    <a class="btn btn-ghost btn-sm"
+       href="{{ url_for('main.inspect_page', slug=g['slug'], phase='review') }}">
+      Grade the {{ m['skipped'] }} unsure
+    </a>
+    {% endif %}
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('main.summary_page', slug=g['slug']) }}">
+      My summary
+    </a>
+  </div>
+</div>
+{% endfor %}
+
+<p style="color:var(--dim); font-size:0.9rem; margin-top:22px;">
+  This page shows your own work only. You will not see anyone else's answers —
+  everyone grades independently, and knowing what others said would bias that.
+</p>
+
+{% endblock %}

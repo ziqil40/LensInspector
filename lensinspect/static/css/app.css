@@ -1,0 +1,657 @@
+/* Lens Inspector — a dark, low-glare theme, since people stare at faint
+   cutouts for long stretches and a bright page washes out the arcs. */
+
+:root {
+  /* Neutral charcoal chrome with a teal accent. Deliberately not the navy +
+     royal blue of the AgileLens research site, and deliberately not any hue
+     already carrying meaning on the grade buttons (green A, blue B, yellow C,
+     red X, violet S). Teal is the one gap left. */
+  --bg: #06090a;
+  --panel: #0c1214;
+  --panel-2: #101819;
+  --line: rgba(255, 255, 255, 0.09);
+  --line-strong: #24383a;
+  --text: #e4ecea;
+  --muted: #8fa8a4;
+  --dim: #67807d;
+  --accent: #1fa88f;
+  --accent-soft: #5fd9c0;
+  --accent-dim: #16302e;
+  --accent-line: #2a5f57;
+  /* The cutout sits on this. Kept colour-neutral on purpose: a tinted surround
+     shifts how the eye reads colour in an RGB astronomical image. */
+  --stage: #050607;
+  --good: #8ff0bb;
+  --warn: #f0d68f;
+  --bad: #ffa8bb;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--accent-soft); }
+
+h1, h2, h3 { color: #edf3f1; line-height: 1.25; }
+h1 { font-size: 1.7rem; margin: 0 0 6px; }
+h2 { font-size: 1.15rem; margin: 32px 0 12px; }
+h3 { font-size: 1rem; margin: 24px 0 8px; }
+
+code {
+  background: var(--accent-dim);
+  color: #9fe0d2;
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-size: 0.86em;
+}
+
+/* ---- chrome ---------------------------------------------------------- */
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0 26px;
+  height: 58px;
+  background: #080d0e;
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.nav-brand {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #fff;
+  text-decoration: none;
+  font-size: 1.02rem;
+}
+
+.nav-brand span { color: var(--accent-soft); }
+
+.nav-link {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.93rem;
+  padding: 6px 2px;
+}
+
+.nav-link:hover, .nav-link.active { color: #fff; }
+.nav-spacer { flex: 1; }
+.nav-who { color: var(--dim); font-size: 0.88rem; }
+
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 28px 26px 72px;
+}
+
+.wrap-wide { max-width: 1560px; }
+.wrap-narrow { max-width: 780px; }
+
+.lede { color: var(--muted); margin: 0 0 26px; }
+
+/* ---- flash messages -------------------------------------------------- */
+
+.flashes { margin: 0 0 22px; padding: 0; list-style: none; }
+
+.flash {
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  font-size: 0.94rem;
+  border: 1px solid;
+}
+
+.flash-success { background: #12301f; border-color: #2c6b45; color: #b6f2d0; }
+.flash-error { background: #35131f; border-color: #7d3049; color: #ffccd8; }
+
+/* ---- controls -------------------------------------------------------- */
+
+.btn {
+  display: inline-block;
+  padding: 11px 22px;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn:hover { background: #29c2a6; border-color: #29c2a6; }
+
+.btn-ghost {
+  background: transparent;
+  border-color: var(--line-strong);
+  color: #bcd2cd;
+}
+
+.btn-ghost:hover { background: rgba(255, 255, 255, 0.06); border-color: var(--line-strong); }
+
+.btn-danger { background: #7d2440; border-color: #7d2440; }
+.btn-danger:hover { background: #99304f; border-color: #99304f; }
+
+.btn-sm { padding: 7px 14px; font-size: 0.87rem; }
+.btn-lg { padding: 15px 34px; font-size: 1.05rem; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.input, .select, textarea.input {
+  width: 100%;
+  padding: 11px 14px;
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 0.95rem;
+  font-family: inherit;
+  outline: none;
+}
+
+.input:focus, .select:focus { border-color: var(--accent); }
+
+.field { margin-bottom: 18px; }
+
+.field label {
+  display: block;
+  margin-bottom: 6px;
+  color: #a6bfba;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.field .hint { color: var(--dim); font-size: 0.84rem; margin-top: 6px; }
+
+.row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+
+/* ---- cards ----------------------------------------------------------- */
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 22px 24px;
+}
+
+.card + .card { margin-top: 18px; }
+
+.auth-card { max-width: 440px; margin: 8vh auto; }
+
+/* ---- group list ------------------------------------------------------ */
+
+.group-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 18px;
+}
+
+.group-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s, transform 0.1s;
+}
+
+.group-card:hover { border-color: var(--line-strong); transform: translateY(-2px); }
+.group-card h3 { margin: 0; font-size: 1.08rem; }
+.group-card .desc { color: var(--muted); font-size: 0.9rem; margin: 0; }
+.group-card .foot { margin-top: auto; display: flex; gap: 10px; align-items: center; }
+
+.bar {
+  height: 8px;
+  border-radius: 999px;
+  background: #101a1b;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-soft));
+  transition: width 0.3s;
+}
+
+.bar-fill.is-done { background: linear-gradient(90deg, #2c9b63, #48d18c); }
+
+.pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #17302d;
+  color: #7fd0bd;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pill-good { background: #143d28; color: var(--good); }
+.pill-warn { background: #40340f; color: var(--warn); }
+.pill-bad { background: #40182a; color: var(--bad); }
+.pill-quiet { background: #161e1f; color: var(--dim); }
+
+/* ---- stats ----------------------------------------------------------- */
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.stat {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 18px;
+}
+
+.stat-value { font-size: 1.75rem; font-weight: 700; color: var(--text); line-height: 1.2; }
+.stat-label { color: var(--muted); font-size: 0.84rem; margin-top: 2px; }
+
+/* Two tiles rather than three: cap the width so they do not stretch into banners */
+.stats-pair { grid-template-columns: repeat(auto-fit, minmax(150px, 260px)); }
+
+/* A tile that is a way back into grading, not just a number. Only the unsure
+   tile becomes a link, and only while there is something there to do. */
+a.stat-link {
+  display: block;
+  text-decoration: none;
+  border-color: var(--accent-line);
+  transition: background 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
+}
+
+a.stat-link:hover,
+a.stat-link:focus-visible {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.stat-cta {
+  color: var(--accent-soft);
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+/* ---- grading --------------------------------------------------------- */
+
+.grade-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.grade-head h1 { font-size: 1.35rem; margin: 0; }
+.grade-sub { color: var(--muted); font-size: 0.92rem; }
+
+.phase-banner {
+  border-radius: 12px;
+  padding: 12px 18px;
+  margin-bottom: 16px;
+  font-size: 0.93rem;
+  background: #2a2010;
+  border: 1px solid #6b5320;
+  color: #f4dfae;
+}
+
+.grade-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 390px;
+  gap: 22px;
+  align-items: start;
+}
+
+/* Nothing on the stage: the grade column is hidden, so give its width back
+   rather than leaving a 390px hole beside the finish message. */
+.grade-grid.is-idle { grid-template-columns: minmax(0, 1fr); }
+
+.stage {
+  background: var(--stage);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  min-height: 64vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.stage img {
+  max-width: 100%;
+  max-height: 74vh;
+  object-fit: contain;
+  transition: transform 0.12s ease-out;
+}
+
+.stage-message { color: var(--dim); text-align: center; padding: 40px; max-width: 460px; }
+
+.viewbar {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.viewbar label { display: flex; gap: 8px; align-items: center; }
+.viewbar input[type="range"] { width: 108px; }
+
+.grades { display: grid; gap: 9px; margin: 4px 0 16px; }
+
+.grade {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 13px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--line-strong);
+  background: var(--panel-2);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 1rem;
+  font-family: inherit;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s, transform 0.08s;
+}
+
+.grade:hover { background: #14262880; border-color: var(--accent); }
+.grade:active { transform: scale(0.99); }
+.grade.is-current { border-color: var(--accent-soft); background: #14312d; }
+
+.key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: #17302d;
+  color: #86d8c5;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.grade-A .key { background: #1d4a33; color: var(--good); }
+.grade-B .key { background: #1e3f5c; color: #8fd0ff; }
+.grade-C .key { background: #4d3f1a; color: var(--warn); }
+.grade-X .key { background: #4d2230; color: var(--bad); }
+.grade-S .key { background: #33305c; color: #c4b8ff; }
+
+.grade-label { flex: 1; }
+.grade-hint { color: var(--dim); font-size: 0.82rem; }
+
+.meta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 7px 14px;
+  font-size: 0.87rem;
+  color: #cddad7;
+  word-break: break-word;
+  margin: 0;
+}
+
+.meta dt { color: var(--dim); }
+.meta dd { margin: 0; }
+
+.obj-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 12px;
+  word-break: break-all;
+}
+
+.section-title {
+  font-size: 0.76rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-soft);
+  margin: 20px 0 9px;
+}
+
+/* ---- tables ---------------------------------------------------------- */
+
+.table-wrap { overflow-x: auto; border-radius: 12px; }
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+  color: #ccd9d6;
+}
+
+.table th, .table td {
+  padding: 9px 12px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  white-space: nowrap;
+}
+
+.table th {
+  color: var(--accent-soft);
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+}
+
+.table tbody tr:hover { background: rgba(255, 255, 255, 0.03); }
+
+.thumb {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  background: var(--stage);
+  border-radius: 6px;
+  display: block;
+}
+
+/* ---- guide ----------------------------------------------------------- */
+
+.guide p, .guide li { color: #c4d2cf; }
+.guide li { margin-bottom: 7px; }
+
+.guide .step {
+  display: flex;
+  gap: 16px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.guide .step:last-child { border-bottom: none; }
+
+.step-num {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #17302d;
+  color: #86d8c5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.step-body h3 { margin: 0 0 4px; }
+.step-body p { margin: 0 0 6px; }
+
+.keytable td { padding: 7px 10px; border-bottom: 1px solid var(--line); }
+.keytable td:first-child { width: 110px; }
+
+.kbd {
+  display: inline-block;
+  min-width: 24px;
+  text-align: center;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #17302d;
+  border-bottom: 2px solid #101a1b;
+  color: #9fe0d2;
+  font-size: 0.84rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.callout {
+  border-left: 3px solid var(--accent);
+  background: #0b1a19;
+  padding: 14px 18px;
+  border-radius: 0 10px 10px 0;
+  margin: 18px 0;
+  color: #c4d2cf;
+  font-size: 0.94rem;
+}
+
+/* the practice "do it again" control sits just under its card, since a <form>
+   cannot legally nest inside the <a> that makes the card clickable */
+.card-aside {
+  margin: -6px 0 4px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ---- guide: non-lens examples ---------------------------------------- */
+
+.nonlens-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 14px;
+  margin: 16px 0 22px;
+}
+
+.nonlens-grid figure {
+  margin: 0;
+}
+
+.nonlens-grid img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  display: block;
+  border-radius: 8px;
+  border: 1px solid var(--line-strong);
+  /* the stamps are 96px; smoothing them into a blur hides the very features
+     the caption is pointing at */
+  image-rendering: pixelated;
+  background: var(--stage);
+}
+
+.nonlens-grid figcaption {
+  margin-top: 7px;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.nonlens-grid figcaption strong { color: var(--text); }
+
+/* ---- guide FAQ ------------------------------------------------------- */
+
+.faq {
+  margin: 18px 0 0;
+}
+
+.faq dt {
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 18px;
+}
+
+.faq dd {
+  margin: 6px 0 0;
+  color: #c4d2cf;
+  font-size: 0.94rem;
+}
+
+/* ---- toast ----------------------------------------------------------- */
+
+.toast {
+  position: fixed;
+  bottom: 26px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 22px;
+  border-radius: 12px;
+  background: #142523;
+  border: 1px solid #2f5a53;
+  color: var(--text);
+  font-size: 0.93rem;
+  z-index: 200;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.toast.is-visible { opacity: 1; }
+.toast.is-error { background: #40182a; border-color: #8a3350; color: #ffd0da; }
+
+/* ---- responsive ------------------------------------------------------ */
+
+@media (max-width: 1040px) {
+  .grade-grid { grid-template-columns: minmax(0, 1fr); }
+  .stage { min-height: 46vh; }
+  .stage img { max-height: 52vh; }
+}
+
+@media (max-width: 640px) {
+  .wrap { padding: 20px 16px 60px; }
+  .nav { padding: 0 16px; gap: 12px; overflow-x: auto; }
+}
+
+/* ---- practice coaching ------------------------------------------------ */
+
+.coach {
+  border: 1px solid var(--accent-line);
+  background: var(--accent-dim);
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  font-size: 0.93rem;
+  color: #cfe6e0;
+}
+
+.coach h3 { margin: 0 0 6px; font-size: 1rem; color: var(--accent-soft); }
+.coach p { margin: 0 0 8px; }
+.coach p:last-of-type { margin-bottom: 0; }
+.coach .btn { margin-top: 12px; }
+
+.coach-intro { grid-column: 1 / -1; }
+.coach-intro .coach-dismiss { color: var(--muted); font-size: 0.9rem; }
+
+/* The hint sits above the grade buttons and should read as a nudge, not a
+   verdict, so it stays in the neutral accent colour. */
+.coach-hint { font-style: italic; }
+
+.coach.is-right { border-color: #2c6b45; background: #102a1c; color: #c3f0d6; }
+.coach.is-right h3 { color: var(--good); }
+
+.coach.is-wrong { border-color: #7d5a30; background: #2a2010; color: #f2ddbd; }
+.coach.is-wrong h3 { color: var(--warn); }

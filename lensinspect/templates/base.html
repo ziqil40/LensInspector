@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Lens Inspector{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#128301;</text></svg>" />
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-brand" href="{{ url_for('main.group_list') }}">Lens<span>Inspector</span></a>
+  {% if inspector %}
+  <a class="nav-link {% if request.endpoint == 'main.group_list' %}active{% endif %}"
+     href="{{ url_for('main.group_list') }}">Groups</a>
+  {% endif %}
+  {% if inspector %}
+  <a class="nav-link {% if request.endpoint == 'main.progress_page' %}active{% endif %}"
+     href="{{ url_for('main.progress_page') }}">My progress</a>
+  {% endif %}
+  <a class="nav-link {% if request.endpoint == 'main.guide' %}active{% endif %}"
+     href="{{ url_for('main.guide') }}">Guide</a>
+  {% if inspector and inspector['is_admin'] %}
+  <a class="nav-link {% if request.blueprint == 'admin' %}active{% endif %}"
+     href="{{ url_for('admin.dashboard') }}">Admin</a>
+  {% endif %}
+
+  <span class="nav-spacer"></span>
+
+  {% if inspector %}
+  <span class="nav-who">{{ inspector['display_name'] or inspector['netid'] }}</span>
+  <a class="nav-link" href="{{ url_for('auth.logout') }}">Sign out</a>
+  {% else %}
+  <a class="nav-link" href="{{ url_for('auth.login') }}">Sign in</a>
+  {% endif %}
+</nav>
+
+<div class="wrap {% block wrap_class %}{% endblock %}">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <ul class="flashes">
+      {% for category, message in messages %}
+      <li class="flash flash-{{ category }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</div>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

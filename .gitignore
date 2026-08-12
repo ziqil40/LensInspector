@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Runtime data: the grading database and the cutout images it serves.
+# These are per-deployment and often large -- keep them out of the repo.
+data/
+
+# Local deployment settings. Contains SECRET_KEY -- never commit this.
+.env
+
+# Access instructions are specific to one deployment (hostnames, accounts).
+ACCESS.md
+ACCESS.pdf
+ACCESS.txt
+make_access_doc.py
+*.docx
+COPY_REVIEW.md

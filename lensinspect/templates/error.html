@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}{{ code }} | Lens Inspector{% endblock %}
+{% block wrap_class %}wrap-narrow{% endblock %}
+{% block content %}
+
+<div class="card" style="margin-top:6vh;">
+  <h1>{{ code }}</h1>
+  <p class="lede">{{ message }}</p>
+  <a class="btn btn-ghost" href="{{ url_for('main.group_list') }}">Back to the groups</a>
+</div>
+
+{% endblock %}

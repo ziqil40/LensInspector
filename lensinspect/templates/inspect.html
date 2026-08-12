@@ -1,0 +1,642 @@
+{% extends 'base.html' %}
+{% block title %}{{ group['name'] }} | Lens Inspector{% endblock %}
+{% block wrap_class %}wrap-wide{% endblock %}
+{% block content %}
+
+<div class="grade-head">
+  <div>
+    <h1>{{ group['name'] }}</h1>
+    <div class="grade-sub">
+      <span id="progress-text">…</span> ·
+      <a href="{{ url_for('main.summary_page', slug=group['slug']) }}">My summary</a> ·
+      <a href="{{ url_for('main.guide') }}">Guide</a>
+    </div>
+  </div>
+  <div class="row">
+    {% if group['is_example'] or group['is_sandbox'] %}
+    <form method="post" action="{{ url_for('main.restart', slug=group['slug']) }}" style="margin:0;"
+          onsubmit='return confirm({{ ("Start over?\n\nThis deletes all your answers for " ~ group["name"] ~ " and cannot be undone.\n\nPress OK to delete them and start again, or Cancel to keep them.") | tojson }});'>
+      <button class="btn btn-ghost btn-sm" type="submit">Start over</button>
+    </form>
+    {% endif %}
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('main.group_list') }}">All groups</a>
+  </div>
+</div>
+
+{% if group['is_example'] and has_answers %}
+<div class="coach coach-intro" id="coach-intro">
+  <h3>Practice run</h3>
+  <p>{{ progress['total'] }} real objects. Grade each one and you will see how
+    an expert graded it, so you can calibrate against them. Nothing here is
+    recorded as a real result — disagree freely, that is the point.</p>
+  <p class="coach-dismiss">The image is on the left, the four grades on the
+    right. Click a grade, or press its number key.</p>
+</div>
+{% elif group['is_sandbox'] or group['is_example'] %}
+<div class="coach coach-intro" id="coach-intro">
+  <h3>Trial run</h3>
+  <p>{{ progress['total'] }} real objects, and it works exactly like a real
+    group. There are no known answers here, so you will not be told whether you
+    were right.</p>
+  <p class="coach-dismiss">Press <span class="kbd">s</span> on one or two, then
+    grade the rest and open <strong>My summary</strong> — the
+    <strong>still unsure</strong> count there takes you back to them. Use
+    <strong>Start over</strong> above to run the whole thing again.</p>
+</div>
+{% endif %}
+
+{% if not group['is_open'] %}
+<div class="phase-banner">
+  <strong>This group has been closed by the organiser.</strong>
+  You can still look through it, but new grades will not be saved.
+</div>
+{% endif %}
+
+<div class="phase-banner" id="review-banner" style="display:none;">
+  <strong>The ones you weren't sure about.</strong>
+  These are the objects you set aside. Unsure does not count as an answer, so
+  give each one <strong>A</strong>, <strong>B</strong>, <strong>C</strong> or
+  <strong>X</strong> — and pick <strong>C</strong> if you genuinely cannot
+  decide.
+</div>
+
+<div class="grade-grid" id="grade-grid">
+
+  <div>
+    <div class="stage" id="stage">
+      <img id="cutout" alt="" style="display:none;" />
+      <div class="stage-message" id="stage-message">Loading…</div>
+    </div>
+
+    <div class="viewbar">
+      <label>Zoom <input type="range" id="zoom" min="1" max="5" step="0.1" value="1" /><span id="zoom-value">1.0×</span></label>
+      <label>Brightness <input type="range" id="brightness" min="0.5" max="3" step="0.1" value="1" /></label>
+      <label>Contrast <input type="range" id="contrast" min="0.5" max="3" step="0.1" value="1" /></label>
+      <label><input type="checkbox" id="pixelated" /> Pixelated</label>
+      <button class="btn btn-ghost btn-sm" id="reset-view" type="button">Reset view</button>
+    </div>
+  </div>
+
+  <div id="grade-panel">
+    <div class="coach coach-hint" id="coach-hint" style="display:none;"></div>
+    <div class="coach" id="coach-feedback" style="display:none;">
+      <h3 id="coach-verdict"></h3>
+      <p id="coach-why"></p>
+      <button class="btn btn-sm" id="coach-next" type="button">Next example →</button>
+    </div>
+
+    <div class="card">
+      <div class="obj-title" id="obj-title">—</div>
+
+      <div class="grades" id="grades">
+        {% for grade in grades %}
+        <button class="grade grade-{{ grade }}" type="button" data-grade="{{ grade }}">
+          <span class="key">{{ loop.index }}</span>
+          <span class="grade-label">{{ grade }} — {{ grade_labels[grade] }}</span>
+          <span class="grade-hint">{{ grade|lower }}</span>
+        </button>
+        {% endfor %}
+        <button class="grade grade-S" type="button" data-grade="S">
+          <span class="key">s</span>
+          <span class="grade-label" id="skip-label">Not sure — decide later</span>
+          <span class="grade-hint">skip</span>
+        </button>
+      </div>
+
+      <div class="row">
+        <button class="btn btn-ghost btn-sm" id="prev-btn" type="button">← Back</button>
+      </div>
+
+      <div class="section-title">Object</div>
+      <dl class="meta" id="meta"></dl>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  const SLUG = {{ group['slug']|tojson }};
+  // a tutorial (pauses on a verdict, no review pass) vs. a throwaway group that
+  // behaves exactly like a real one but may be wiped and rerun
+  const IS_TUTORIAL = {{ ((group['is_example'] | int) and (has_answers | int)) | tojson }} === 1;
+  const IS_SANDBOX = {{ ((group['is_sandbox'] | int) or ((group['is_example'] | int) and not (has_answers | int))) | tojson }} === 1;
+  const GRADE_NAMES = {{ grade_labels|tojson }};
+  const CAN_VOTE = {{ ((group['is_open'] and not locked) | int) | tojson }} === 1;
+  const LOCK_REASON = {{ 'This group is closed — grades can no longer be saved.'|tojson }};
+  const VALID_GRADES = {{ (grades|list + ['S'])|tojson }};
+  const SUMMARY_URL = {{ url_for('main.summary_page', slug=group['slug'])|tojson }};
+  const GROUPS_URL = {{ url_for('main.group_list')|tojson }};
+  const PREFETCH_AT = 5;   // fetch more when this few remain
+  const BATCH = 25;
+  // Cutouts are small (96x96 for the Q1 set), so at 1:1 they occupy a corner of
+  // the stage and faint arcs are unreadable. Draw them at this multiple of
+  // their natural size; the zoom slider multiplies on top of it.
+  const BASE_SCALE = 3;
+  // How long the review pass holds a fresh answer on screen before moving on, so
+  // the highlight moving off "still not sure" is actually visible. Short enough
+  // not to slow anyone down; a further keypress skips the rest of the wait.
+  const REVIEW_CONFIRM_MS = 320;
+
+  const state = {
+    phase: {{ phase|tojson }},   // 'main' — first pass, 'review' — the unsure ones
+    items: [],
+    seen: new Set(),
+    pos: 0,
+    votes: {},                   // cutoutname -> {grade}
+    loading: false,
+    exhausted: false,
+    pending: null,          // timer holding the review-pass confirmation
+    progress: {{ progress|tojson }},
+  };
+
+  const el = {
+    img: document.getElementById('cutout'),
+    message: document.getElementById('stage-message'),
+    title: document.getElementById('obj-title'),
+    meta: document.getElementById('meta'),
+    grades: document.getElementById('grades'),
+    panel: document.getElementById('grade-panel'),
+    grid: document.getElementById('grade-grid'),
+    coachIntro: document.getElementById('coach-intro'),
+    coachHint: document.getElementById('coach-hint'),
+    coachFeedback: document.getElementById('coach-feedback'),
+    coachVerdict: document.getElementById('coach-verdict'),
+    coachWhy: document.getElementById('coach-why'),
+    coachNext: document.getElementById('coach-next'),
+    skipLabel: document.getElementById('skip-label'),
+    prev: document.getElementById('prev-btn'),
+    progress: document.getElementById('progress-text'),
+    banner: document.getElementById('review-banner'),
+    toast: document.getElementById('toast'),
+    zoom: document.getElementById('zoom'),
+    zoomValue: document.getElementById('zoom-value'),
+    brightness: document.getElementById('brightness'),
+    contrast: document.getElementById('contrast'),
+    pixelated: document.getElementById('pixelated'),
+    resetView: document.getElementById('reset-view'),
+  };
+
+  // ---- helpers ----------------------------------------------------------
+
+  function esc(value) {
+    if (value === null || value === undefined) return '';
+    return String(value)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function fmt(value, decimals) {
+    const n = parseFloat(value);
+    return Number.isFinite(n) ? n.toFixed(decimals) : '—';
+  }
+
+  let toastTimer = null;
+  function toast(message, isError) {
+    el.toast.textContent = message;
+    el.toast.classList.toggle('is-error', Boolean(isError));
+    el.toast.classList.add('is-visible');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(
+      () => el.toast.classList.remove('is-visible'), isError ? 6000 : 1400);
+  }
+
+  function imageUrl(cutoutname) {
+    return '/g/' + encodeURIComponent(SLUG) + '/img/' +
+           encodeURIComponent(cutoutname) + '.png';
+  }
+
+  function current() { return state.items[state.pos] || null; }
+
+  // ---- queue ------------------------------------------------------------
+
+  function fetchMore() {
+    if (state.loading || state.exhausted) return Promise.resolve(0);
+    state.loading = true;
+
+    const params = new URLSearchParams({ n: String(BATCH), phase: state.phase });
+    return fetch('/g/' + encodeURIComponent(SLUG) + '/api/queue?' + params.toString())
+      .then(r => r.json())
+      .then(data => {
+        let added = 0;
+        (data.candidates || []).forEach(candidate => {
+          // Items we have already walked past come back from the server (they
+          // are still unsure, or the vote is still in flight) — drop those.
+          if (state.seen.has(candidate.cutoutname)) return;
+          state.seen.add(candidate.cutoutname);
+          state.items.push(candidate);
+          added += 1;
+        });
+        if (added === 0) state.exhausted = true;
+        if (data.progress) state.progress = data.progress;
+        return added;
+      })
+      .catch(() => {
+        toast('Could not reach the server — check your connection.', true);
+        return 0;
+      })
+      .finally(() => { state.loading = false; });
+  }
+
+  function preload(count) {
+    for (let i = 1; i <= count; i += 1) {
+      const item = state.items[state.pos + i];
+      if (item && item.has_image) new Image().src = imageUrl(item.cutoutname);
+    }
+  }
+
+  // ---- rendering --------------------------------------------------------
+
+  function renderProgress() {
+    const p = state.progress;
+    let text = p.graded + ' of ' + p.total + ' graded';
+    if (p.skipped) text += ' · ' + p.skipped + ' unsure';
+    if (p.unseen) text += ' · ' + p.unseen + ' not seen yet';
+    el.progress.textContent = text;
+  }
+
+  function renderDone() {
+    el.img.style.display = 'none';
+    el.message.style.display = 'block';
+    el.title.textContent = '—';
+    el.meta.innerHTML = '';
+    // Nothing to grade, so the A/B/C/X/S column is not just useless -- a stale
+    // highlight on it reads as an answer still waiting to be given.
+    paintVote(null);
+    if (el.panel) el.panel.style.display = 'none';
+    if (el.grid) el.grid.classList.add('is-idle');
+
+    const p = state.progress;
+
+    if (IS_TUTORIAL) {
+      if (el.coachHint) el.coachHint.style.display = 'none';
+      if (el.coachFeedback) el.coachFeedback.style.display = 'none';
+      el.message.innerHTML =
+        '<h3 style="margin-top:0;">Practice finished</h3>' +
+        '<p>That is the whole idea: a curved feature of a different colour, ' +
+        'bending around the galaxy in front. Everything else is an X.</p>' +
+        '<p>You can run through this again any time — it never affects real ' +
+        'results.</p>' +
+        '<a class="btn" href="' + GROUPS_URL + '">Start on the real list</a>';
+      return;
+    }
+
+    // Finishing the unsure pile is not the end of anything: the summary offers
+    // them again, so this hands back rather than declaring the group done.
+    if (state.phase === 'review') {
+      const left = p.skipped > 0
+        ? '<p>' + p.skipped + ' object' + (p.skipped === 1 ? ' is' : 's are') +
+          ' still marked unsure, which does not count as an answer. Come ' +
+          'back to them from the summary whenever you like, and use ' +
+          '<strong>C</strong> if you genuinely cannot decide.</p>'
+        : '<p>Nothing is left unsure.</p>';
+      el.message.innerHTML =
+        '<h3 style="margin-top:0;">Done with the unsure ones</h3>' + left +
+        '<a class="btn" href="' + SUMMARY_URL + '">Back to summary</a>';
+      return;
+    }
+
+    // First pass exhausted. The unsure pile is offered from the summary rather
+    // than here, so there is one obvious route back to it instead of two.
+    if (p.skipped > 0) {
+      el.message.innerHTML =
+        '<h3 style="margin-top:0;">You have been through all ' + p.total + '</h3>' +
+        '<p>' + p.skipped + ' object' + (p.skipped === 1 ? ' is' : 's are') +
+        ' still marked unsure, which does not count as an answer. Go to the ' +
+        'summary and click the <strong>still unsure</strong> count to work ' +
+        'through them.</p>' +
+        '<a class="btn" href="' + SUMMARY_URL + '">Go to summary</a>';
+      return;
+    }
+
+    el.message.innerHTML =
+      '<h3 style="margin-top:0;">That is everything — thank you.</h3>' +
+      '<p>You have been through all ' + p.total + ' objects in this group.</p>' +
+      '<a class="btn" href="' + SUMMARY_URL + '">Go to my summary</a>';
+  }
+
+  function render() {
+    renderProgress();
+    const item = current();
+
+    if (!item) {
+      if (state.loading) {
+        el.img.style.display = 'none';
+        el.message.style.display = 'block';
+        el.message.textContent = 'Loading…';
+        paintVote(null);
+        if (el.panel) el.panel.style.display = 'none';
+    if (el.grid) el.grid.classList.add('is-idle');
+        return;
+      }
+      // Out of items: show the finish card. The unsure pile is reached from the
+      // summary, deliberately -- see renderDone().
+      renderDone();
+      return;
+    }
+
+    el.message.style.display = 'none';
+    if (el.panel) el.panel.style.display = '';
+    if (el.grid) el.grid.classList.remove('is-idle');
+    if (item.has_image) {
+      el.img.src = imageUrl(item.cutoutname);
+      el.img.alt = item.objname || item.cutoutname;
+      el.img.style.display = 'block';
+    } else {
+      el.img.style.display = 'none';
+      el.message.style.display = 'block';
+      el.message.textContent =
+        'No cutout image was found for ' + item.cutoutname + '.png. ' +
+        'Mark it unsure and tell the organiser.';
+    }
+
+    el.title.textContent = item.objname || item.cutoutname;
+
+    const rows = [
+      ['Cutout', item.cutoutname],
+      ['RA', item.ra === null ? '—' : fmt(item.ra, 6) + '°'],
+      ['Dec', item.dec === null ? '—' : fmt(item.dec, 6) + '°'],
+      ['Score', item.score === null ? '—' : fmt(item.score, 4)],
+      ['Rank', item.rank === null ? '—' : item.rank],
+    ];
+    // Underscore-prefixed keys are the practice group's answer and coaching
+    // text -- they drive the UI, they are not object metadata.
+    Object.keys(item.extra || {})
+      .filter(key => key.charAt(0) !== '_')
+      .forEach(key => rows.push([key, item.extra[key]]));
+
+    el.meta.innerHTML = rows
+      .map(([key, value]) => '<dt>' + esc(key) + '</dt><dd>' + esc(value) + '</dd>')
+      .join('');
+
+    // Restore whatever we know about this object: a vote cast in this session
+    // wins, otherwise the one the server sent.
+    const sessionVote = state.votes[item.cutoutname];
+    const vote = sessionVote || item.my_vote || {};
+    // Every object in the unsure pile arrives marked "unsure" -- that is what put
+    // it there. Showing it highlighted pre-answers the question being asked
+    // again, so the pile starts blank and only lights up once you choose here.
+    const showAsChosen = (!sessionVote && state.phase === 'review' && vote.grade === 'S')
+      ? null : vote.grade;
+    paintVote(showAsChosen);
+
+    if (IS_TUTORIAL) showHint(item);
+
+    el.prev.disabled = state.pos === 0;
+    preload(3);
+
+    if (state.items.length - state.pos <= PREFETCH_AT) {
+      fetchMore().then(added => { if (added) renderProgress(); });
+    }
+  }
+
+  // ---- practice coaching ------------------------------------------------
+
+  /* In the practice group each object carries the answer an expert gave plus a
+     nudge to look at the right thing. Grading pauses on a verdict instead of
+     running straight on, because the explanation is the whole point here. */
+
+  function showHint(item) {
+    const hint = (item.extra || {})._hint;
+    el.coachFeedback.style.display = 'none';
+    if (hint) {
+      el.coachHint.textContent = hint;
+      el.coachHint.style.display = 'block';
+    } else {
+      el.coachHint.style.display = 'none';
+    }
+  }
+
+  function showVerdict(item, given) {
+    const extra = item.extra || {};
+    const answer = extra._answer;
+    if (!answer) return false;
+
+    const name = GRADE_NAMES[answer] || answer;
+    // Grading a lens by eye is a judgement, not a test with a marking scheme, so
+    // the feedback compares two opinions rather than declaring one wrong. Distance
+    // on the A > B > C > X scale decides how close the two calls were.
+    const ORDER = { A: 3, B: 2, C: 1, X: 0 };
+    const gap = (given in ORDER && answer in ORDER)
+      ? Math.abs(ORDER[given] - ORDER[answer]) : null;
+    const agrees = gap === 0;
+    const close = gap === 1;
+
+    el.coachHint.style.display = 'none';
+    el.coachFeedback.style.display = 'block';
+    el.coachFeedback.classList.toggle('is-right', agrees || close);
+    el.coachFeedback.classList.toggle('is-wrong', gap !== null && gap >= 2);
+
+    const expert = 'An expert graded this ' + answer + ' — ' + name.toLowerCase() + '.';
+    if (given === 'S') {
+      el.coachVerdict.textContent = expert + ' You were not sure, which is fair — ' +
+        'these are genuinely hard.';
+    } else if (agrees) {
+      el.coachVerdict.textContent = expert + ' You said the same.';
+    } else if (close) {
+      el.coachVerdict.textContent = expert + ' You said ' + given +
+        ', which is right next to it — that level of disagreement is normal.';
+    } else {
+      el.coachVerdict.textContent = expert + ' You said ' + given +
+        '. That is a fair way apart, so it is worth another look at this one.';
+    }
+    el.coachWhy.textContent = '';
+    el.coachNext.textContent = (state.pos >= state.items.length - 1)
+      ? 'Finish practice →' : 'Next example →';
+    el.coachNext.focus();
+    return true;
+  }
+
+  if (el.coachNext) {
+    el.coachNext.addEventListener('click', () => {
+      el.coachFeedback.style.display = 'none';
+      if (el.coachIntro) el.coachIntro.style.display = 'none';
+      advance();
+    });
+  }
+
+  // ---- voting -----------------------------------------------------------
+
+  function submitVote(grade) {
+    const item = current();
+    if (!item) return;
+    if (VALID_GRADES.indexOf(grade) === -1) return;
+    if (!CAN_VOTE) {
+      toast(LOCK_REASON, true);
+      return;
+    }
+
+    const previous = state.votes[item.cutoutname] || item.my_vote || null;
+    const vote = { grade: grade };
+    state.votes[item.cutoutname] = vote;
+
+    // Keep the counters honest locally so the header does not lag a request
+    // behind; the server's numbers overwrite these when the reply lands.
+    const wasGraded = previous && previous.grade && previous.grade !== 'S';
+    const wasSkipped = previous && previous.grade === 'S';
+    const isGraded = grade !== 'S';
+    if (isGraded && !wasGraded) state.progress.graded += 1;
+    if (!isGraded && wasGraded) state.progress.graded -= 1;
+    if (!isGraded && !wasSkipped) state.progress.skipped += 1;
+    if (isGraded && wasSkipped) state.progress.skipped -= 1;
+    if (!previous) state.progress.unseen = Math.max(0, state.progress.unseen - 1);
+
+    // Light up the button that was just pressed, before anything moves on.
+    paintVote(grade);
+
+    // Advance straight away so grading stays fast; the request settles behind
+    // us. In the practice group we stop on the explanation instead -- reading
+    // it is the entire point, so speed is not what matters there.
+    if (IS_TUTORIAL && showVerdict(item, grade)) {
+      renderProgress();
+    } else if (state.phase === 'review') {
+      // Every object in the review pass arrives with "still not sure" already
+      // highlighted, so advancing instantly makes a decision look like it never
+      // registered -- the next object simply shows "unsure" highlighted again.
+      // Hold the new highlight long enough to be seen, and let a second press
+      // cut the wait short rather than queueing another advance.
+      renderProgress();
+      if (state.pending) window.clearTimeout(state.pending);
+      state.pending = window.setTimeout(() => { state.pending = null; advance(); },
+                                        REVIEW_CONFIRM_MS);
+    } else {
+      advance();
+    }
+
+    fetch('/g/' + encodeURIComponent(SLUG) + '/api/vote', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cutoutname: item.cutoutname,
+        grade: vote.grade,
+      }),
+    })
+      .then(r => r.json().then(data => ({ ok: r.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok) {
+          toast(data.error || ('Grade for ' + item.cutoutname + ' was not saved.'), true);
+          if (previous) { state.votes[item.cutoutname] = previous; }
+          else { delete state.votes[item.cutoutname]; }
+          return;
+        }
+        if (data.progress) { state.progress = data.progress; renderProgress(); }
+      })
+      .catch(() => {
+        toast('Grade for ' + item.cutoutname + ' was not saved — check your connection.', true);
+        if (previous) { state.votes[item.cutoutname] = previous; }
+        else { delete state.votes[item.cutoutname]; }
+      });
+  }
+
+  /* Which grade button reads as chosen right now. Split out of render() so a
+     click can light up its own button immediately, before anything advances. */
+  function paintVote(grade) {
+    Array.from(el.grades.querySelectorAll('.grade')).forEach(button => {
+      button.classList.toggle('is-current', button.dataset.grade === grade);
+    });
+  }
+
+  function advance() {
+    if (state.pending) { window.clearTimeout(state.pending); state.pending = null; }
+    if (state.pos < state.items.length) state.pos += 1;
+    if (state.pos >= state.items.length && !state.exhausted) {
+      fetchMore().then(render);
+      return;
+    }
+    render();
+  }
+
+  function back() {
+    if (state.pos > 0) { state.pos -= 1; render(); }
+  }
+
+  // ---- view controls ----------------------------------------------------
+
+  /* Size the image off its own natural dimensions, so this works whatever the
+     cutouts happen to be. Runs on every load because each object may differ. */
+  function sizeImage() {
+    if (!el.img.naturalWidth) return;
+    el.img.style.width = (el.img.naturalWidth * BASE_SCALE) + 'px';
+    el.img.style.height = 'auto';
+  }
+
+  el.img.addEventListener('load', sizeImage);
+
+  function applyView() {
+    const zoom = parseFloat(el.zoom.value);
+    el.zoomValue.textContent = zoom.toFixed(1) + '×';
+    el.img.style.transform = 'scale(' + zoom + ')';
+    el.img.style.filter =
+      'brightness(' + el.brightness.value + ') contrast(' + el.contrast.value + ')';
+    el.img.style.imageRendering = el.pixelated.checked ? 'pixelated' : 'auto';
+  }
+
+  [el.zoom, el.brightness, el.contrast, el.pixelated].forEach(control => {
+    control.addEventListener('input', applyView);
+  });
+
+  el.resetView.addEventListener('click', () => {
+    el.zoom.value = 1;
+    el.brightness.value = 1;
+    el.contrast.value = 1;
+    el.pixelated.checked = false;
+    applyView();
+  });
+
+  // ---- events -----------------------------------------------------------
+
+  el.grades.addEventListener('click', event => {
+    const button = event.target.closest('.grade');
+    if (button) submitVote(button.dataset.grade);
+  });
+
+  el.prev.addEventListener('click', back);
+
+  const KEY_TO_GRADE = {
+    '1': 'A', 'a': 'A',
+    '2': 'B', 'b': 'B',
+    '3': 'C', 'c': 'C',
+    '4': 'X', 'x': 'X',
+    's': 'S',
+  };
+
+  document.addEventListener('keydown', event => {
+    const typing = ['INPUT', 'TEXTAREA', 'SELECT'].indexOf(event.target.tagName) !== -1;
+
+    if (typing) {
+      if (event.key === 'Escape' || event.key === 'Enter') event.target.blur();
+      return;
+    }
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+
+    const key = event.key.toLowerCase();
+
+    if (KEY_TO_GRADE[key]) {
+      event.preventDefault();
+      submitVote(KEY_TO_GRADE[key]);
+    } else if (event.key === 'ArrowLeft' || key === 'p') {
+      event.preventDefault();
+      back();
+    } else if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      if (state.pos < state.items.length - 1) { state.pos += 1; render(); }
+    }
+  });
+
+  // ---- go ---------------------------------------------------------------
+
+  if (state.phase === 'review') {
+    el.banner.style.display = 'block';
+    el.skipLabel.textContent = 'Still not sure — come back to it';
+  }
+
+  applyView();
+  fetchMore().then(render);
+})();
+</script>
+
+{% endblock %}

@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block title %}Summary — {{ group['name'] }} | Lens Inspector{% endblock %}
+{% block wrap_class %}wrap-narrow{% endblock %}
+{% block content %}
+
+<h1>{{ group['name'] }}</h1>
+<p class="lede">Your work on this group.</p>
+
+{# The unsure tile is the way back into the pile you set aside: click it and you
+   get exactly those objects, then land back here with the numbers updated, as
+   often as you like. It stays a plain block once empty, since there is nothing
+   to go and do. #}
+<div class="stats stats-pair">
+  <div class="stat">
+    <div class="stat-value">{{ progress['graded'] }}</div>
+    <div class="stat-label">graded of {{ progress['total'] }}</div>
+  </div>
+
+  {% if progress['skipped'] %}
+  <a class="stat stat-link"
+     href="{{ url_for('main.inspect_page', slug=group['slug'], phase='review') }}">
+    <div class="stat-value">{{ progress['skipped'] }}</div>
+    <div class="stat-label">still unsure</div>
+    <div class="stat-cta">Grade these &rarr;</div>
+  </a>
+  {% else %}
+  <div class="stat">
+    <div class="stat-value">{{ progress['skipped'] }}</div>
+    <div class="stat-label">still unsure</div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="bar" style="margin-bottom:16px;">
+    <div class="bar-fill {% if progress['finished'] %}is-done{% endif %}"
+         style="width: {{ progress['percent'] }}%;"></div>
+  </div>
+
+  <div class="section-title" style="margin-top:0;">Your grades</div>
+  <dl class="meta">
+    {% for grade in grades %}
+    <dt>{{ grade }} — {{ grade_labels[grade] }}</dt>
+    <dd>{{ progress['counts'][grade] }}</dd>
+    {% endfor %}
+    <dt>Unsure</dt>
+    <dd>{{ progress['skipped'] }}</dd>
+  </dl>
+</div>
+
+{# No submit step: every grade is already saved and already counts. Telling people
+   so is the point of this card -- otherwise they wait for a button that is not
+   there, or assume unfinished work was thrown away. #}
+<div class="card">
+  <h3 style="margin-top:0;">Everything here is already saved</h3>
+
+  {% if progress['unseen'] or progress['skipped'] %}
+  <p style="color:var(--muted);">
+    Your <strong>{{ progress['graded'] }}</strong> grade{{ '' if progress['graded'] == 1 else 's' }}
+    {{ 'is' if progress['graded'] == 1 else 'are' }} recorded and counted. There is
+    nothing to submit — stop whenever you like and pick up later.
+    {%- if progress['skipped'] %} The
+    <strong>{{ progress['skipped'] }}</strong> still marked unsure
+    {{ 'is' if progress['skipped'] == 1 else 'are' }} not counted as an answer, so
+    it is worth coming back to
+    {{ 'it' if progress['skipped'] == 1 else 'them' }} — use
+    <strong>C</strong> if you genuinely cannot decide.{% endif %}
+  </p>
+  {% else %}
+  <p style="color:var(--muted);">
+    You have graded every object in this group and all
+    <strong>{{ progress['graded'] }}</strong> grades are recorded. Nothing further
+    is needed — thank you.
+  </p>
+  {% endif %}
+
+  <div class="row" style="margin-top:18px;">
+    {% if progress['unseen'] %}
+    <a class="btn" href="{{ url_for('main.inspect_page', slug=group['slug']) }}">
+      Keep grading
+    </a>
+    {% endif %}
+    <a class="btn btn-ghost" href="{{ url_for('main.group_list') }}">Back to the groups</a>
+    {% if group['is_example'] or group['is_sandbox'] %}
+    {% set answered = progress['graded'] + progress['skipped'] %}
+    <form method="post" action="{{ url_for('main.restart', slug=group['slug']) }}" style="margin:0;"
+          onsubmit='return confirm({{ ("Start over?\n\nThis deletes all " ~ answered ~ " of your answers for " ~ group["name"] ~ " and cannot be undone.\n\nPress OK to delete them and start again, or Cancel to keep them.") | tojson }});'>
+      <button class="btn btn-ghost" type="submit">Start it over</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<p style="margin-top:24px;">
+  <a class="nav-link" href="{{ url_for('main.group_list') }}">← All groups</a>
+</p>
+
+{% endblock %}

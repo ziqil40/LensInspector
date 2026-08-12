@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+{% block title %}Guide | Lens Inspector{% endblock %}
+{% block wrap_class %}wrap-narrow{% endblock %}
+{% block content %}
+
+<div class="guide">
+
+<h1>How to use Lens Inspector</h1>
+<p class="lede">
+  You will be shown pictures of galaxies, one at a time, and asked whether each
+  one is a <strong>gravitational lens</strong>. This page tells you what that
+  means and what to press. It takes about two minutes.
+</p>
+
+<h2>What you are looking for</h2>
+
+<p>
+  When a heavy galaxy sits directly in front of a more distant one, its gravity
+  bends the light coming from behind it. The far galaxy stops looking like a
+  blob and gets smeared into a <strong>curved arc, or a full ring, wrapped
+  around the near one</strong>. That is a gravitational lens, and it is rare
+  and valuable.
+</p>
+
+<div class="callout">
+  <strong>The whole job in one sentence.</strong> Look for a curved streak of a
+  <em>different color</em> — usually blue or violet — bending around a
+  rounder, brighter galaxy in the middle.
+</div>
+
+<p>
+  The objects you are shown were picked out by our model as the ones most
+  likely to be lenses, but it gets it wrong often. Your job is to check its
+  guesses. <strong>Most of what you see will not be a lens</strong> — that is
+  expected, and is itself a useful answer. What we are after are the few real
+  lenses hiding among them.
+</p>
+
+<p>Things that fool people, and are <em>not</em> lenses. These are all real
+  objects from this survey:</p>
+
+<div class="nonlens-grid">
+  <figure>
+    <img src="{{ url_for('static', filename='img/guide/nonlens-pair.png') }}"
+         alt="A standalone yellow galaxy with fuzzy clumps on the edge">
+    <figcaption>A standalone yellow galaxy with fuzzy clumps on the edge. The
+      clumps do not form resolved arcs that resemble a lensed galaxy.</figcaption>
+  </figure>
+  <figure>
+    <img src="{{ url_for('static', filename='img/guide/nonlens-spiral.png') }}"
+         alt="A spiral galaxy with two distinct arms spiralling out from the core">
+    <figcaption>A spiral galaxy with two distinct arms spiralling out from the
+      core. They do not resemble the tangential arcs that lensed galaxies form,
+      and they have the same color as the core.</figcaption>
+  </figure>
+  <figure>
+    <img src="{{ url_for('static', filename='img/guide/nonlens-trail.png') }}"
+         alt="A streak-shaped artifact crossing the frame">
+    <figcaption>A streak-shaped artifact, possibly from cosmic rays, accidentally
+      identified as an astrophysical source.</figcaption>
+  </figure>
+  <figure>
+    <img src="{{ url_for('static', filename='img/guide/nonlens-elongated.png') }}"
+         alt="A grand-design spiral galaxy with two faint blue arms">
+    <figcaption>A grand-design spiral galaxy with two faint blue arms. The arms
+      extend from the core and are also too fuzzy to be a lensed galaxy.</figcaption>
+  </figure>
+</div>
+
+<h2>The four answers</h2>
+
+{# Definitions come straight from GRADE_DESCRIPTIONS rather than being restated
+   here: these are the criteria graders are held to, so there is exactly one copy
+   of the wording and no chance of the guide drifting from it. #}
+<table class="table keytable" style="margin:12px 0 20px;">
+  <tbody>
+    {% for grade in grades %}
+    <tr>
+      <td><span class="kbd">{{ loop.index }}</span></td>
+      <td><strong>{{ grade }}</strong> — {{ grade_descriptions[grade] }}</td>
+    </tr>
+    {% endfor %}
+    <tr>
+      <td><span class="kbd">s</span></td>
+      <td><strong>Not sure — decide later.</strong> Parks it for another look,
+        so you can come back to it.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>
+  Click the buttons or press the keys — they do the same thing. <span class="kbd">&larr;</span> goes back if you want to
+  change an answer.
+</p>
+
+<h2>How a session goes</h2>
+
+<div class="step">
+  <div class="step-num">1</div>
+  <div class="step-body">
+    <h3>Try the practice group first</h3>
+    <p>On the group list there is a group called <strong>Practice</strong>.
+      It has eight real examples, and after each one you see how an expert
+      graded it. Nothing in it counts. Start there.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num">2</div>
+  <div class="step-body">
+    <h3>Then pick a real group and work down it</h3>
+    <p>Grade each object as it comes. If you are not sure about one, press
+      <span class="kbd">s</span> and move on — that parks it for a second look,
+      it does not answer it.</p>
+    <p>You cannot miss anything: the first pass hands you every object you have
+      not answered yet, in order, and picks up where you stopped if you close
+      the tab.</p>
+    <p><strong>The unsure ones live on the summary page.</strong> Go to
+      <strong>My summary</strong> and click the <strong>still
+      unsure</strong> count — it gives you exactly those objects, then drops you
+      back at the summary with the numbers updated. You can do that as often as
+      you like.</p>
+    <p><strong>Unsure is a parking space, not a grade.</strong> An object left
+      unsure is not counted as an answer, so please come back and give it one —
+      the <strong>still unsure</strong> count on your summary shows how many are
+      waiting.</p>
+    <p>If you come back to one and still cannot decide, that is what
+      <strong>C — borderline</strong> is for. Use it. C is a real answer — “there
+      is something here, but an ordinary explanation fits just as well” — and
+      people disagreeing on the borderline cases is useful information.</p>
+    <p>Use the sliders under the picture if they help.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num">3</div>
+  <div class="step-body">
+    <h3>That is it — there is nothing to submit</h3>
+    <p>Every grade is saved and counted the moment you press the key. There is no
+      Submit button and no finishing line: if you get through 300 objects, that is
+      300 real grades, and stopping does not throw them away.</p>
+    <p>Come back whenever you like and carry on where you stopped. You can also
+      change an earlier answer at any time — nothing is ever locked.</p>
+  </div>
+</div>
+
+<h2>Worth knowing</h2>
+
+<ul>
+  <li><strong>You cannot break anything.</strong> Every answer saves as you go.
+    Close the tab whenever; you will pick up where you left off.</li>
+  <li><strong>Guessing wrong is fine.</strong> Several people grade the same
+    objects independently, and the disagreements are informative. Do not try to
+    match what you think others would say.</li>
+  <li><strong>You will not see other people's answers</strong> — that would
+    bias yours.</li>
+  <li><strong>If an image will not load,</strong> mark it unsure and ask Ziqi
+    on Slack.</li>
+</ul>
+
+<h2>Common questions</h2>
+
+<dl class="faq">
+  <dt>Is my work saved? Is there a save button?</dt>
+  <dd>There is no save button — each answer is sent the instant you press the
+    key. If one ever fails to save, a red message appears naming the object and
+    that answer is undone, so a problem is always visible. No red message means
+    it is saved.</dd>
+
+  <dt>Can I stop and come back later?</dt>
+  <dd>Yes. Close everything and return whenever; you carry on where you stopped.
+    You stay signed in for 60 days.</dd>
+
+  <dt>Do I have to do the whole group in one sitting?</dt>
+  <dd>No. Do as many as you like; it remembers. Everyone is shown every object,
+    so there is no need to coordinate who takes which.</dd>
+
+  <dt>Do I see the same objects as everyone else?</dt>
+  <dd>Yes, the same objects in the same order.</dd>
+
+  <dt>Do I need to submit anything?</dt>
+  <dd>No. Every grade is saved as you go and counts immediately — there is no
+    Submit button. Stop whenever you like.</dd>
+</dl>
+
+{% if inspector %}
+<p style="margin-top:34px;">
+  <a class="btn" href="{{ url_for('main.group_list') }}">Go to the groups</a>
+</p>
+{% else %}
+<p style="margin-top:34px;">
+  <a class="btn" href="{{ url_for('auth.login') }}">Sign in and start</a>
+</p>
+{% endif %}
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+{% block title %}{{ group['name'] }} — results | Lens Inspector{% endblock %}
+{% block wrap_class %}wrap-wide{% endblock %}
+{% block content %}
+
+<div class="grade-head">
+  <div>
+    <h1>{{ group['name'] }}</h1>
+    <div class="grade-sub">
+      {% if group['description'] %}{{ group['description'] }} · {% endif %}
+      <a href="{{ url_for('main.inspect_page', slug=group['slug']) }}">Grade this group yourself</a>
+    </div>
+  </div>
+  {# Downloads live per person in the Inspectors table below, one file each. #}
+</div>
+
+<div class="stats">
+  <div class="stat">
+    <div class="stat-value">{{ summary['total_candidates'] }}</div>
+    <div class="stat-label">objects</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value">{{ summary['percent_covered'] }}%</div>
+    <div class="stat-label">have at least one grade</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value">{{ summary['graded_votes'] }}</div>
+    <div class="stat-label">grades cast</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value">{{ summary['n_inspectors'] }}</div>
+    <div class="stat-label">inspectors</div>
+  </div>
+</div>
+
+<h2>Inspectors</h2>
+
+{% if not people %}
+<div class="card"><p style="margin:0; color:var(--muted);">Nobody has graded anything in this group yet.</p></div>
+{% else %}
+<div class="table-wrap card" style="padding:0;">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>NetID</th><th>Name</th><th>Graded</th>
+        {% for grade in grades %}<th>{{ grade }}</th>{% endfor %}
+        <th>Unsure</th><th>Last graded</th><th>Their grades</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for person in people %}
+      <tr>
+        <td>{{ person['netid'] }}</td>
+        <td>{{ person['display_name'] }}</td>
+        <td><strong>{{ person['graded'] }}</strong> / {{ summary['total_candidates'] }}</td>
+        {% for grade in grades %}<td>{{ person['votes_' ~ grade] }}</td>{% endfor %}
+        <td>{{ person['skipped'] }}</td>
+        <td style="color:var(--muted);">{{ (person['last_at'] or '')[:10] }}</td>
+        <td>
+          {# Always available: grades count as they are cast, so there is no
+             "finished" moment to wait for. #}
+          <a class="btn btn-sm"
+             href="{{ url_for('admin.export_votes_for', slug=group['slug'], netid=person['netid']) }}">
+            Download CSV
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+
+<h2>Manage</h2>
+
+<div class="card">
+  <form method="post" action="{{ url_for('admin.group_settings', slug=group['slug']) }}">
+    <div class="field">
+      <label for="name">Name</label>
+      <input class="input" id="name" name="name" value="{{ group['name'] }}" />
+    </div>
+    <div class="field">
+      <label for="description">Description</label>
+      <input class="input" id="description" name="description" value="{{ group['description'] or '' }}" />
+    </div>
+    <div class="field">
+      <label for="image_dir">Cutout directory</label>
+      <input class="input" id="image_dir" name="image_dir" value="{{ group['image_dir'] or '' }}"
+             placeholder="blank = the server default" />
+    </div>
+    <label style="display:flex; gap:9px; align-items:center; color:var(--muted); font-size:0.92rem;">
+      <input type="checkbox" name="is_open" {% if group['is_open'] %}checked{% endif %} />
+      Open for grading — uncheck to stop new grades being saved
+    </label>
+    <button class="btn btn-sm" type="submit" style="margin-top:18px;">Save changes</button>
+  </form>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0;">Add more candidates</h3>
+  <p style="color:var(--muted); font-size:0.92rem;">
+    Upload another CSV to append to this group. Objects already here are left
+    alone, so grades already cast are never disturbed.
+  </p>
+  <form method="post" action="{{ url_for('admin.add_candidates', slug=group['slug']) }}"
+        enctype="multipart/form-data" class="row">
+    <input class="input" name="candidates" type="file" accept=".csv,text/csv"
+           required style="flex:1; min-width:220px;" />
+    <button class="btn btn-sm" type="submit">Add</button>
+  </form>
+</div>
+
+<div class="card" style="border-color:#5a2036;">
+  <h3 style="margin-top:0;">Delete this group</h3>
+  <p style="color:var(--muted); font-size:0.92rem;">
+    Removes the group, its {{ summary['total_candidates'] }} objects and all
+    {{ summary['graded_votes'] }} grades cast against them. This cannot be
+    undone — download the CSVs first. Type
+    <strong>{{ group['name'] }}</strong> to confirm.
+  </p>
+  <form method="post" action="{{ url_for('admin.delete_group', slug=group['slug']) }}" class="row">
+    <input class="input" name="confirm" placeholder="{{ group['name'] }}"
+           autocomplete="off" style="flex:1; min-width:220px;" />
+    <button class="btn btn-danger btn-sm" type="submit">Delete permanently</button>
+  </form>
+</div>
+
+{% endblock %}

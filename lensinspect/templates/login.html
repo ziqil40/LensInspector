@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}Sign in | Lens Inspector{% endblock %}
+{% block content %}
+
+<div class="card auth-card">
+  <h1>Lens Inspector</h1>
+
+{% if confirm_netid %}
+  {# Nobody has used this NetID before. Almost always that means a typo, so make
+     creating a new account a deliberate second click rather than a side effect. #}
+  <p class="lede">This NetID has not been used here before.</p>
+
+  <div class="callout" style="margin-bottom:20px;">
+    <p style="margin:0 0 8px;">You typed <strong style="font-size:1.15em;">{{ confirm_netid }}</strong></p>
+    <p style="margin:0; color:var(--muted);">
+      If that is right, this will be a brand-new account and you will start with
+      nothing graded. If you have graded here before, check the spelling — a typo
+      makes a second account, and your earlier work will not show up in it.
+    </p>
+  </div>
+
+  <form method="post" action="{{ url_for('auth.login', next=next) }}">
+    <input type="hidden" name="netid" value="{{ confirm_netid }}" />
+    <input type="hidden" name="confirm_new" value="yes" />
+    <button class="btn" type="submit" style="width:100%;">
+      Yes, create {{ confirm_netid }} and start
+    </button>
+  </form>
+
+  <form method="get" action="{{ url_for('auth.login', next=next) }}">
+    <button class="btn btn-ghost" type="submit" style="width:100%; margin-top:10px;">
+      No, let me retype it
+    </button>
+  </form>
+{% else %}
+  <p class="lede">Enter your UCI NetID to start. There is no password.</p>
+
+  <form method="post">
+    <div class="field">
+      <label for="netid">UCI NetID</label>
+      <input class="input" id="netid" name="netid" autocomplete="username"
+             autocapitalize="off" autocorrect="off" spellcheck="false"
+             placeholder="e.g. jsmith2" autofocus required />
+      <div class="hint">Your NetID is the part before <code>@uci.edu</code>. It
+        labels your grades so they can be told apart from everyone else's.</div>
+    </div>
+
+    <button class="btn" type="submit" style="width:100%;">Start inspecting</button>
+  </form>
+{% endif %}
+
+  <p style="margin-top:22px; color:var(--dim); font-size:0.9rem; text-align:center;">
+    First time here? Read the <a href="{{ url_for('main.guide') }}">guide</a> — it takes two minutes.
+  </p>
+</div>
+
+{% endblock %}

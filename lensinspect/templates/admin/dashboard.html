@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}Admin | Lens Inspector{% endblock %}
+{% block content %}
+
+<div class="grade-head">
+  <div>
+    <h1>Groups</h1>
+    <div class="grade-sub">Watch progress and export results.</div>
+  </div>
+  <div class="row">
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('admin.people') }}">People</a>
+  </div>
+</div>
+
+{% if not groups %}
+<div class="card">
+  <h3 style="margin-top:0;">Nothing here yet</h3>
+  <p style="color:var(--muted);">
+    Load a candidate list from the server:
+  </p>
+  <p><code>python -m lensinspect.ingest list.csv --group "Round 1" --image-dir /path/to/pngs</code></p>
+</div>
+{% else %}
+
+<div class="table-wrap card" style="padding:0;">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Group</th>
+        <th>Objects</th>
+        <th>Covered</th>
+        <th>Grades cast</th>
+        <th>Inspectors</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for group in groups %}
+      {% set s = group['summary'] %}
+      <tr>
+        <td><a href="{{ url_for('admin.group_detail', slug=group['slug']) }}">{{ group['name'] }}</a></td>
+        <td>{{ s['total_candidates'] }}</td>
+        <td>{{ s['with_votes'] }} ({{ s['percent_covered'] }}%)</td>
+        <td>{{ s['graded_votes'] }}</td>
+        <td>{{ s['n_inspectors'] }}</td>
+        <td>
+          {% if group['is_open'] %}
+          <span class="pill pill-good">Open</span>
+          {% else %}
+          <span class="pill pill-quiet">Closed</span>
+          {% endif %}
+        </td>
+        <td>
+          <a class="btn btn-ghost btn-sm"
+             href="{{ url_for('admin.export_consensus', slug=group['slug']) }}">CSV</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endif %}
+
+<div class="card" style="margin-top:24px;">
+  <h3 style="margin-top:0;">Sharing the link</h3>
+  <p style="color:var(--muted); margin-bottom:0;">
+    Send people the address of this site. They sign in with their UCI NetID —
+    no password, no account setup, no invitation needed. Point them at the
+    <a href="{{ url_for('main.guide') }}">guide</a> first.
+  </p>
+</div>
+
+{% endblock %}

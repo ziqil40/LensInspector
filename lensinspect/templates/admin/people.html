@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}People | Lens Inspector{% endblock %}
+{% block content %}
+
+<h1>People</h1>
+<p class="lede">
+  Everyone who has signed in. Accounts appear the moment someone types a NetID,
+  so a mistyped one shows up here with nothing graded — those are safe to delete.
+</p>
+
+<div class="table-wrap card" style="padding:0;">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>NetID</th><th>Grades cast</th>
+        <th>First seen</th><th>Last seen</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for person in people %}
+      <tr>
+        <td>
+          {{ person['netid'] }}
+          {% if person['is_admin'] %}<span class="pill pill-good" style="margin-left:8px;">admin</span>{% endif %}
+        </td>
+        <td>
+          {% if person['n_votes'] %}<strong>{{ person['n_votes'] }}</strong>
+          {% else %}<span class="pill pill-quiet">never graded</span>{% endif %}
+        </td>
+        <td style="color:var(--muted);">{{ (person['created_at'] or '')[:10] }}</td>
+        <td style="color:var(--muted);">{{ (person['last_seen_at'] or '')[:10] }}</td>
+        <td style="text-align:right;">
+          {% if person['id'] == inspector['id'] %}
+          <span style="color:var(--dim);">that's you</span>
+          {% else %}
+          {# An unused account is a typo: delete it outright. One with grades takes
+             them with it, so that needs the NetID typed out. #}
+          <form method="post" action="{{ url_for('admin.delete_inspector', netid=person['netid']) }}"
+                class="row" style="justify-content:flex-end; gap:8px;"
+                {% if not person['n_votes'] %}
+                onsubmit="return confirm('Delete {{ person['netid'] }}? They have never graded anything.');"
+                {% endif %}>
+            {% if person['n_votes'] %}
+            <input class="input" name="confirm" placeholder="type {{ person['netid'] }} to confirm"
+                   autocomplete="off" style="max-width:230px;" />
+            {% endif %}
+            <button class="btn btn-danger btn-sm" type="submit">Delete</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<p style="margin-top:24px;">
+  <a class="nav-link" href="{{ url_for('admin.dashboard') }}">← Groups</a>
+</p>
+
+{% endblock %}

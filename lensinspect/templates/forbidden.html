@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block title %}Not allowed | Lens Inspector{% endblock %}
+{% block wrap_class %}wrap-narrow{% endblock %}
+{% block content %}
+
+<div class="card" style="margin-top:6vh;">
+  <h1>Organisers only</h1>
+  <p class="lede">
+    This page shows everybody's grades, so it is limited to the people running
+    the round. If that should be you, ask for your NetID to be added to
+    <code>ADMIN_NETIDS</code>.
+  </p>
+  <a class="btn btn-ghost" href="{{ url_for('main.group_list') }}">Back to the groups</a>
+</div>
+
+{% endblock %}

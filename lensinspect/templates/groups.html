@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}Groups | Lens Inspector{% endblock %}
+{% block content %}
+
+<h1>Candidate groups</h1>
+<p class="lede">
+  Pick a group to work through. Your place is saved as you go, so you can stop
+  and come back whenever you like.
+</p>
+
+{% if not groups %}
+<div class="card">
+  <h3 style="margin-top:0;">No groups yet</h3>
+  <p style="color:var(--muted); margin-bottom:0;">
+    Nobody has uploaded a candidate list yet. Check back once the organiser
+    has set one up.
+  </p>
+</div>
+{% endif %}
+
+<div class="group-grid">
+  {% for group in groups %}
+  {% set mine = group['mine'] %}
+  <a class="group-card" href="{{ url_for('main.inspect_page', slug=group['slug']) }}">
+    <div class="row" style="justify-content:space-between; align-items:flex-start;">
+      <h3>{{ group['name'] }}</h3>
+      {% if group['is_example'] %}
+        <span class="pill">Practice</span>
+      {% elif group['is_sandbox'] %}
+        <span class="pill">{{ 'Trial — only you can see this' if group['is_hidden'] else 'Trial — nothing recorded' }}</span>
+      {% elif not group['is_open'] %}
+        <span class="pill pill-quiet">Closed</span>
+      {% elif mine['finished'] %}
+        <span class="pill pill-good">All graded</span>
+      {% elif mine['graded'] or mine['skipped'] %}
+        <span class="pill">In progress</span>
+      {% else %}
+        <span class="pill pill-quiet">Not started</span>
+      {% endif %}
+    </div>
+
+    {% if group['description'] %}
+    <p class="desc">{{ group['description'] }}</p>
+    {% endif %}
+
+    {% if group['is_example'] %}
+    <div class="foot">
+      <span class="pill pill-quiet">{{ group['n_candidates'] }} examples</span>
+      <span class="pill pill-quiet">about 3 minutes</span>
+    </div>
+    {% else %}
+    <div>
+      <div class="bar">
+        <div class="bar-fill {% if mine['finished'] %}is-done{% endif %}"
+             style="width: {{ mine['percent'] }}%;"></div>
+      </div>
+      <div style="color:var(--muted); font-size:0.86rem; margin-top:7px;">
+        You have graded <strong>{{ mine['graded'] }}</strong> of
+        <strong>{{ group['n_candidates'] }}</strong>
+        {%- if mine['skipped'] %}, {{ mine['skipped'] }} left unsure{% endif %}.
+      </div>
+    </div>
+
+    <div class="foot">
+      <span class="pill pill-quiet">{{ group['n_candidates'] }} objects</span>
+      <span class="pill pill-quiet">
+        {{ group['n_inspectors'] }} inspector{{ '' if group['n_inspectors'] == 1 else 's' }}
+      </span>
+    </div>
+    {% endif %}
+  </a>
+  {% endfor %}
+</div>
+
+{% endblock %}
