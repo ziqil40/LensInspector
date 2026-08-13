@@ -52,6 +52,17 @@ Things that fool people, and are *not* lenses. These are all real objects from t
 
 Click the buttons or press the keys — they do the same thing. `←` goes back if you want to change an answer.
 
+## What each grade looks like
+
+*(rendered on the website as four scrollable rows of 12 cutouts, one row per grade —
+images live in `lensinspect/static/img/guide/examples/{A,B,C,X}/01..12.png`)*
+
+Twelve real examples of each. The **A**, **B** and **C** rows are objects graded by
+experts in the published lens catalogues; the **X** row is drawn from this candidate
+list, so it shows the kind of thing the model gets wrong. Scroll through them before
+you start — the boundary between B and C is where people disagree most, and seeing a
+dozen of each is worth more than any description.
+
 ## How a session goes
 
 *(rendered as numbered step blocks)*

@@ -573,6 +573,49 @@ a.stat-link:focus-visible {
 
 .nonlens-grid figcaption strong { color: var(--text); }
 
+/* ---- guide: worked examples per grade -------------------------------- */
+
+.example-block { margin: 20px 0 26px; }
+
+.example-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.kbd-grade { flex: none; font-weight: 700; }
+
+/* A single row that scrolls sideways rather than reflowing: keeping all twelve
+   on one line makes the set easy to compare, and a wrapped grid of 48 stamps
+   turns the page into a wall. */
+.example-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: thin;
+}
+
+.example-strip img {
+  width: 104px;
+  height: 104px;
+  flex: none;
+  border-radius: 7px;
+  border: 1px solid var(--line-strong);
+  background: var(--stage);
+  /* 96px stamps: smoothing them blurs away the arcs people are learning to see */
+  image-rendering: pixelated;
+}
+
+@media (max-width: 640px) {
+  .example-strip img { width: 84px; height: 84px; }
+}
+
 /* ---- guide FAQ ------------------------------------------------------- */
 
 .faq {

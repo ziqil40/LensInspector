@@ -93,6 +93,32 @@
   change an answer.
 </p>
 
+<h2>What each grade looks like</h2>
+
+<p>
+  Twelve real examples of each. The <strong>A</strong>, <strong>B</strong> and
+  <strong>C</strong> rows are objects graded by experts in the published lens
+  catalogues; the <strong>X</strong> row is drawn from this candidate list, so it
+  shows the kind of thing the model gets wrong. Scroll through them before you
+  start — the boundary between B and C is where people disagree most, and seeing
+  a dozen of each is worth more than any description.
+</p>
+
+{% for grade in grades %}
+<div class="example-block">
+  <h3 class="example-head">
+    <span class="kbd kbd-grade grade-{{ grade }}">{{ grade }}</span>
+    {{ grade_descriptions[grade] }}
+  </h3>
+  <div class="example-strip">
+    {% for i in range(1, 13) %}
+    <img src="{{ url_for('static', filename='img/guide/examples/%s/%02d.png' % (grade, i)) }}"
+         alt="Example {{ i }} of a grade {{ grade }} object" loading="lazy">
+    {% endfor %}
+  </div>
+</div>
+{% endfor %}
+
 <h2>How a session goes</h2>
 
 <div class="step">
