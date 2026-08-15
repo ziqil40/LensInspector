@@ -84,7 +84,8 @@ columns are kept** and shown in the sidebar while grading, so photometry and
 diagnostics stay visible.
 
 Object order is `cand_rank`/`rank` when present, otherwise descending score.
-Everyone sees the same order.
+Everyone sees the same order unless the group has `shuffle_order` set — see
+[Order, and spreading the work](#order-and-spreading-the-work).
 
 ### The images
 
@@ -149,10 +150,35 @@ visible. The next few images are preloaded. Zoom, brightness, contrast and
 pixelated are display-only and never recorded. Cutouts are drawn at 3× natural
 size, since a 96 px stamp at 1:1 is unreadable.
 
-### Everyone grades the whole group
+### Order, and spreading the work
 
-Every grader is shown every object, in the same order. Redundancy comes from
-several people doing the same list, and the agreement between them is the result.
+By default every grader is shown every object in the same rank order. That is
+fine when people finish, but if they stop early they all stop in the same place:
+the top of the list gets every vote and the tail gets none.
+
+Two per-group settings on the admin page change that:
+
+**Give each grader their own random order** (`shuffle_order`) hands each person a
+different, stable permutation of the group, seeded from (group, grader). Partial
+effort then spreads over the whole list. With 10 graders on a 2,000-object group:
+
+| Each grader completes | Same order | Own random order |
+|---|---|---|
+| 25% | 500 objects covered (25%) | **1,889 covered (94%)**, ~2.5 votes each |
+| 50% | 1,000 covered (50%) | **1,997 covered (100%)**, ~5 votes each |
+| 100% | all 2,000 × 10 | all 2,000 × 10 |
+
+The order is a hash of (group, grader, object) rather than `random()`, so it is
+stable across requests and restarts — otherwise "carry on where you left off"
+would hand people a freshly shuffled list every time.
+
+**Retire an object after N grades** (`max_votes`, 0 = never) drops an object from
+everyone's queue once N people have graded it. Note it only bites when there are
+*more* graders than N: with 10 people and N=10 nothing retires early, since each
+person can only vote once per object.
+
+Redundancy still comes from several people grading the same object, and the
+agreement between them is the result.
 
 ### Nothing to submit
 

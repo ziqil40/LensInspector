@@ -51,6 +51,26 @@ def my_progress(
     skipped = counts.get(SKIP, 0)
     touched = graded + skipped
 
+    # Objects retired by other people are gone from this person's queue, so
+    # counting them as "not looked at yet" would leave the number stuck above zero
+    # with nothing left to grade.
+    cap = db.execute(
+        "SELECT max_votes FROM groups WHERE id = ?", (group_id,)
+    ).fetchone()["max_votes"] or 0
+    retired_unseen = 0
+    if cap > 0:
+        retired_unseen = db.execute(
+            """
+            SELECT COUNT(*) AS n FROM candidates c
+             WHERE c.group_id = ?
+               AND NOT EXISTS (SELECT 1 FROM votes v
+                                WHERE v.candidate_id = c.id AND v.inspector_id = ?)
+               AND (SELECT COUNT(*) FROM votes vc
+                     WHERE vc.candidate_id = c.id AND vc.grade != ?) >= ?
+            """,
+            (group_id, inspector_id, SKIP, cap),
+        ).fetchone()["n"]
+
     submitted = db.execute(
         "SELECT submitted_at FROM submissions WHERE group_id = ? AND inspector_id = ?",
         (group_id, inspector_id),
@@ -60,7 +80,8 @@ def my_progress(
         "total": total,
         "graded": graded,
         "skipped": skipped,
-        "unseen": max(0, total - touched),
+        "unseen": max(0, total - touched - retired_unseen),
+        "retired": retired_unseen,
         "counts": {g: counts.get(g, 0) for g in GRADES},
         "percent": round(100.0 * graded / total, 1) if total else 0.0,
         "finished": total > 0 and graded >= total,

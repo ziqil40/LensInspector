@@ -8,6 +8,7 @@ ever locked; people may revise an answer whenever they like.
 
 from __future__ import annotations
 
+import hashlib
 import os
 import sqlite3
 from typing import Any, Optional
@@ -73,6 +74,30 @@ def _image_dir(group: sqlite3.Row) -> str:
 
 def _has_image(group: sqlite3.Row, cutoutname: str) -> bool:
     return os.path.isfile(os.path.join(_image_dir(group), f"{cutoutname}.png"))
+
+
+def _install_shuffle_key(
+    db: sqlite3.Connection, group_id: int, inspector_id: int
+) -> None:
+    """Register ``shuffle_key(candidate_id)`` -- this grader's order for this group.
+
+    A hash rather than ``random()`` so the order is *stable*: the same person gets
+    the same sequence on every request and after a restart, which is what makes
+    "carry on where you left off" mean anything. Seeded per (group, inspector) so
+    two people working at the same time draw different objects.
+
+    Python's ``hash()`` is salted per process and would reshuffle on every restart,
+    hence blake2b.
+    """
+    seed = f"{group_id}:{inspector_id}".encode()
+
+    def shuffle_key(candidate_id: int) -> float:
+        digest = hashlib.blake2b(
+            seed + b":" + str(candidate_id).encode(), digest_size=8
+        ).digest()
+        return int.from_bytes(digest, "big") / float(1 << 64)
+
+    db.create_function("shuffle_key", 1, shuffle_key, deterministic=True)
 
 
 def _payload(group: sqlite3.Row, row: sqlite3.Row) -> dict[str, Any]:
@@ -217,8 +242,30 @@ def api_queue(slug: str):
             (inspector["id"], group["id"], SKIP, REVIEW_BATCH),
         ).fetchall()
     else:
-        rows = db.execute(
+        # Retired objects (enough grades already) drop out for everyone; the order
+        # is either the shared rank order or this grader's own shuffle.
+        cap = group["max_votes"] or 0
+        cap_clause = (
             """
+              AND (SELECT COUNT(*) FROM votes vc
+                    WHERE vc.candidate_id = c.id AND vc.grade != ?) < ?
+            """
+            if cap > 0
+            else ""
+        )
+        if group["shuffle_order"]:
+            _install_shuffle_key(db, group["id"], inspector["id"])
+            order_clause = "ORDER BY shuffle_key(c.id)"
+        else:
+            order_clause = "ORDER BY c.rank IS NULL, c.rank ASC, c.score DESC, c.id ASC"
+
+        params: list[Any] = [group["id"], inspector["id"]]
+        if cap > 0:
+            params += [SKIP, cap]
+        params.append(limit)
+
+        rows = db.execute(
+            f"""
             SELECT c.*, NULL AS my_grade, NULL AS my_flagged, NULL AS my_note
             FROM candidates c
             WHERE c.group_id = ?
@@ -226,10 +273,11 @@ def api_queue(slug: str):
                     SELECT 1 FROM votes v
                      WHERE v.candidate_id = c.id AND v.inspector_id = ?
               )
-            ORDER BY c.rank IS NULL, c.rank ASC, c.score DESC, c.id ASC
+              {cap_clause}
+            {order_clause}
             LIMIT ?
             """,
-            (group["id"], inspector["id"], limit),
+            params,
         ).fetchall()
 
     return jsonify(

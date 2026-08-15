@@ -97,12 +97,18 @@ def group_settings(slug: str):
     description = request.form.get("description", "").strip() or None
     image_dir = request.form.get("image_dir", "").strip() or None
     is_open = 1 if request.form.get("is_open") else 0
+    shuffle_order = 1 if request.form.get("shuffle_order") else 0
+    try:
+        max_votes = max(0, int(request.form.get("max_votes", "0") or 0))
+    except ValueError:
+        max_votes = group["max_votes"] or 0
 
     with db:
         db.execute(
-            "UPDATE groups SET name = ?, description = ?, image_dir = ?, is_open = ?"
-            " WHERE id = ?",
-            (name, description, image_dir, is_open, group["id"]),
+            "UPDATE groups SET name = ?, description = ?, image_dir = ?, is_open = ?,"
+            " shuffle_order = ?, max_votes = ? WHERE id = ?",
+            (name, description, image_dir, is_open, shuffle_order, max_votes,
+             group["id"]),
         )
     flash("Group updated.", "success")
     return redirect(url_for("admin.group_detail", slug=slug))
