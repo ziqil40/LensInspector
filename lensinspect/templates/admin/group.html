@@ -93,6 +93,18 @@
       <input type="checkbox" name="is_open" {% if group['is_open'] %}checked{% endif %} />
       Open for grading — uncheck to stop new grades being saved
     </label>
+    <label style="display:flex; gap:9px; align-items:center; color:var(--muted); font-size:0.92rem; margin-top:10px;">
+      <input type="checkbox" name="shuffle_order" {% if group['shuffle_order'] %}checked{% endif %} />
+      Give each grader their own random order — spreads partial effort over the
+      whole list instead of everyone stopping in the same place
+    </label>
+    <div class="field" style="margin-top:14px; max-width:320px;">
+      <label for="max_votes">Retire an object after this many grades</label>
+      <input class="input" id="max_votes" name="max_votes" type="number" min="0"
+             value="{{ group['max_votes'] or 0 }}" />
+      <div class="hint">0 = never retire. Only has an effect when more people
+        grade than this number.</div>
+    </div>
     <button class="btn btn-sm" type="submit" style="margin-top:18px;">Save changes</button>
   </form>
 </div>

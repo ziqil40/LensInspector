@@ -170,6 +170,15 @@ _ADDED_COLUMNS: tuple[tuple[str, str, str], ...] = (
     # other admins, who have no reason to see someone's scratch work.
     ("groups", "is_hidden", "INTEGER NOT NULL DEFAULT 0"),
     ("groups", "owner_netid", "TEXT"),
+    # Hand each grader their own random order through the group instead of the
+    # shared rank order. With everyone on the same order, people who stop early
+    # all stop in the same place: the top N gets every vote and the tail gets
+    # none. A per-grader shuffle spreads partial effort over the whole list.
+    ("groups", "shuffle_order", "INTEGER NOT NULL DEFAULT 0"),
+    # Retire an object once this many people have graded it (0 = never). Only
+    # bites when there are more graders than the target, and stops late joiners
+    # re-grading what is already settled.
+    ("groups", "max_votes", "INTEGER NOT NULL DEFAULT 0"),
 )
 
 
