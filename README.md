@@ -183,12 +183,15 @@ N=10, nothing retires early, since each person votes at most once per object.
 Redundancy still comes from several people grading the same object, and the
 agreement between them is the result.
 
-**The progress bar measures the job, not your keystrokes.** An object retired by
-other people has left your queue and you will never be asked for it, so it counts
-as done for you too — with a cap of 10, someone who has graded nothing still sees
-their bar move as the rest of the group settles objects. Every page shows the
-same single figure, *"1,842 of 2,000 left"*, and the grading header refreshes as
-people work.
+**The progress bar measures the job, not your keystrokes.** On a capped group it
+counts objects that have *retired*, and reads the same in everybody's account:
+*"1,842 of 2,000 left"*. Grading an object yourself does not move it — the object
+is not finished until the other nine have graded it too — but it advances while
+you watch, because other people are settling objects at the same time. The
+grading header refreshes from the queue response as they do.
+
+On a group with no cap there is no shared finishing line, so the bar falls back to
+that person's own outstanding work.
 
 ### Adding cutouts while people are grading
 
