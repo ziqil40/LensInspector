@@ -59,6 +59,12 @@
         <strong>{{ group['n_candidates'] }}</strong>
         {%- if mine['skipped'] %}, {{ mine['skipped'] }} left unsure{% endif %}.
       </div>
+      {% if group['shared']['capped'] %}
+      <div style="color:var(--dim); font-size:0.86rem; margin-top:4px;">
+        <strong>{{ '{:,}'.format(group['shared']['left']) }}</strong> left for
+        everyone ({{ group['shared']['percent'] }}% finished)
+      </div>
+      {% endif %}
     </div>
 
     <div class="foot">

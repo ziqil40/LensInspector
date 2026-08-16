@@ -135,6 +135,7 @@ def group_list():
     groups = [g for g in aggregate.group_overview(db) if can_see_group(g, inspector)]
     for group in groups:
         group["mine"] = aggregate.my_progress(db, group["id"], inspector["id"])
+        group["shared"] = aggregate.group_progress(db, group["id"])
     return render_template("groups.html", groups=groups, inspector=inspector)
 
 
@@ -160,7 +161,8 @@ def progress_page():
     rows = []
     for group in groups:
         mine = aggregate.my_progress(db, group["id"], inspector["id"])
-        rows.append({"group": group, "mine": mine})
+        rows.append({"group": group, "mine": mine,
+                     "shared": aggregate.group_progress(db, group["id"])})
     return render_template("progress.html", rows=rows, inspector=inspector)
 
 
@@ -206,6 +208,7 @@ def inspect_page(slug: str):
         grades=GRADES,
         grade_labels=GRADE_LABELS,
         progress=progress,
+        group_progress=aggregate.group_progress(db, group["id"]),
         locked=not group["is_open"],
         has_answers=has_answers,
     )
@@ -284,6 +287,8 @@ def api_queue(slug: str):
         {
             "candidates": [_payload(group, row) for row in rows],
             "progress": aggregate.my_progress(db, group["id"], inspector["id"]),
+            # the same for everyone: how much of the group is still unsettled
+            "group_progress": aggregate.group_progress(db, group["id"]),
         }
     )
 
@@ -350,6 +355,7 @@ def summary_page(slug: str):
     return render_template(
         "summary.html",
         group=group,
+        group_progress=aggregate.group_progress(db, group["id"]),
         inspector=inspector,
         progress=progress,
         locked=not group["is_open"],

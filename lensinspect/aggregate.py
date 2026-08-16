@@ -89,6 +89,48 @@ def my_progress(
     }
 
 
+def group_progress(db: sqlite3.Connection, group_id: int) -> dict[str, Any]:
+    """How far the *group as a whole* has got -- the same numbers for everybody.
+
+    An object is "done" when it has been graded by ``max_votes`` people and has
+    retired out of everyone's queue. Without a cap there is no finishing line, so
+    ``capped`` is False and callers should not show a completion bar.
+
+    Skips are excluded, matching the retirement rule: an object several people
+    were unsure about is not settled.
+    """
+    row = db.execute(
+        "SELECT max_votes, (SELECT COUNT(*) FROM candidates c WHERE c.group_id = g.id)"
+        " AS total FROM groups g WHERE g.id = ?",
+        (group_id,),
+    ).fetchone()
+    total = row["total"] if row else 0
+    cap = (row["max_votes"] if row else 0) or 0
+
+    if cap <= 0 or total == 0:
+        return {"total": total, "cap": cap, "capped": False,
+                "done": 0, "left": total, "percent": 0.0}
+
+    done = db.execute(
+        """
+        SELECT COUNT(*) AS n FROM candidates c
+         WHERE c.group_id = ?
+           AND (SELECT COUNT(*) FROM votes v
+                 WHERE v.candidate_id = c.id AND v.grade != ?) >= ?
+        """,
+        (group_id, SKIP, cap),
+    ).fetchone()["n"]
+
+    return {
+        "total": total,
+        "cap": cap,
+        "capped": True,
+        "done": done,
+        "left": total - done,
+        "percent": round(100.0 * done / total, 1),
+    }
+
+
 def group_overview(db: sqlite3.Connection) -> list[dict[str, Any]]:
     """One row per group for the landing page: size, participants, submissions."""
     rows = db.execute(

@@ -39,6 +39,24 @@
     yet{% endif %}.
   </div>
 
+  {% set sh = row['shared'] %}
+  {% if sh['capped'] %}
+  <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+    <div style="color:var(--dim); font-size:0.82rem; text-transform:uppercase;
+                letter-spacing:0.04em; margin-bottom:7px;">Everyone together</div>
+    <div class="bar">
+      <div class="bar-fill {% if sh['left'] == 0 %}is-done{% endif %}"
+           style="width: {{ sh['percent'] }}%;"></div>
+    </div>
+    <div style="color:var(--muted); font-size:0.9rem; margin-top:8px;">
+      <strong>{{ '{:,}'.format(sh['left']) }}</strong>
+      cutout{{ '' if sh['left'] == 1 else 's' }} left for the group —
+      {{ '{:,}'.format(sh['done']) }} of {{ '{:,}'.format(sh['total']) }} have
+      reached {{ sh['cap'] }} grades and retired.
+    </div>
+  </div>
+  {% endif %}
+
   <div class="row" style="margin-top:16px;">
     {% if m['unseen'] %}
     <a class="btn btn-sm" href="{{ url_for('main.inspect_page', slug=g['slug']) }}">Carry on</a>
