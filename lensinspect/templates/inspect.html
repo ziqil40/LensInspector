@@ -152,6 +152,7 @@
     exhausted: false,
     pending: null,          // timer holding the review-pass confirmation
     progress: {{ progress|tojson }},
+    shared: {{ group_progress|tojson }},   // same numbers for everyone
   };
 
   const el = {
@@ -233,6 +234,7 @@
         });
         if (added === 0) state.exhausted = true;
         if (data.progress) state.progress = data.progress;
+        if (data.group_progress) state.shared = data.group_progress;
         return added;
       })
       .catch(() => {
@@ -256,6 +258,12 @@
     let text = p.graded + ' of ' + p.total + ' graded';
     if (p.skipped) text += ' · ' + p.skipped + ' unsure';
     if (p.unseen) text += ' · ' + p.unseen + ' not seen yet';
+    // How much is left for the group, not just for this person: their own count
+    // says nothing about whether the list as a whole is nearly done.
+    const g = state.shared;
+    if (g && g.capped) {
+      text += ' · ' + g.left.toLocaleString() + ' left for everyone';
+    }
     el.progress.textContent = text;
   }
 
