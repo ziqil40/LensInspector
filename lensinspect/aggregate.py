@@ -78,38 +78,24 @@ def my_progress(
 
     unseen = max(0, total - touched - retired_unseen)
 
-    if cap > 0:
-        # A capped group has a real finishing line -- an object is done when it has
-        # been graded ``cap`` times and retires -- and it is the *same* line for
-        # everybody. So "left" is how many objects have not retired, identical in
-        # every account. One person grading all of them settles nothing on their
-        # own: the others still owe it a grade, and the bar must not pretend the
-        # work is finished.
-        done = db.execute(
-            """
-            SELECT COUNT(*) AS n FROM candidates c
-             WHERE c.group_id = ?
-               AND (SELECT COUNT(*) FROM votes v
-                     WHERE v.candidate_id = c.id AND v.grade != ?) >= ?
-            """,
-            (group_id, SKIP, cap),
-        ).fetchone()["n"]
-        left = total - done
-    else:
-        # No cap, so no shared finishing line: fall back to this person's own
-        # outstanding work, including anything they parked as unsure.
-        left = unseen + skipped
+    # What this person can actually be asked for: the whole group minus anything
+    # that retired without their vote. Shrinking the denominator rather than
+    # crediting them for other people's work keeps the bar an honest measure of
+    # their own grading, while never asking for more than the queue can offer.
+    available = max(0, total - retired_unseen)
+    left = unseen + skipped              # == available - graded
 
     return {
-        "total": total,
+        "total": total,                  # the group's real size, for the admin views
+        "available": available,          # what this person will ever be offered
         "graded": graded,
         "skipped": skipped,
         "unseen": unseen,
         "retired": retired_unseen,
         "left": left,
         "counts": {g: counts.get(g, 0) for g in GRADES},
-        "percent": round(100.0 * (total - left) / total, 1) if total else 0.0,
-        "finished": total > 0 and left == 0,
+        "percent": round(100.0 * graded / available, 1) if available else 100.0,
+        "finished": available > 0 and left == 0,
         "submitted_at": submitted["submitted_at"] if submitted else None,
     }
 

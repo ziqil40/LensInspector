@@ -55,9 +55,9 @@
              style="width: {{ mine['percent'] }}%;"></div>
       </div>
       <div style="color:var(--muted); font-size:0.86rem; margin-top:7px;">
-        <strong>{{ '{:,}'.format(mine['left']) }}</strong>
-        cutout{{ '' if mine['left'] == 1 else 's' }} left of
-        <strong>{{ '{:,}'.format(group['n_candidates']) }}</strong>.
+        You have graded <strong>{{ '{:,}'.format(mine['graded']) }}</strong> of
+        <strong>{{ '{:,}'.format(mine['available']) }}</strong>
+        {%- if mine['left'] %}, {{ '{:,}'.format(mine['left']) }} left{% endif %}.
       </div>
     </div>
 

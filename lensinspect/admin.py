@@ -218,6 +218,10 @@ def group_detail(slug: str):
         inspector=current_inspector(),
         summary=aggregate.group_summary(db, group["id"]),
         people=aggregate.group_inspectors(db, group["id"]),
+        # Retirement is deliberately invisible to graders -- their pages show only
+        # their own work against a shrinking total -- so this is the one place the
+        # organiser can see how much of the list has actually settled.
+        retirement=aggregate.group_progress(db, group["id"]),
         grades=GRADES,
     )
 

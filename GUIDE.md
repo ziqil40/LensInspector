@@ -95,10 +95,12 @@ Come back whenever you like and carry on where you stopped. You can also change 
 
 The cutouts come to you in a **random order**, and everybody gets a different one. You are not working through the same sequence as the person next to you.
 
-Once a cutout has been graded by enough people — **10** of you on the Q1 list — it **retires**. It is finished, and nobody is shown it again.
+Once a cutout has been graded by enough people — **10** of you on the Q1 list — it is **finished**. Nobody is shown it again, not even someone who never saw it.
 
 > **[callout]**
-> **So the progress bar can move without you.** It counts the cutouts that have *not* retired yet, across everyone. Other people are grading at the same time, and every cutout they finish is one fewer left — so the bar creeps forward even during a session where you have graded nothing yourself. That is working as intended, not a glitch.
+> **Your progress bar is yours.** It counts the cutouts *you* have graded, so it only moves when you grade something.
+>
+> The total beside it can go down on its own, though. If a cutout is finished by ten other people before it ever reaches you, it drops off your list — so you might see *"100 of 1,842 graded"* one day and *"100 of 1,790"* the next. You have not lost anything: there is simply less left to do.
 
 ## Worth knowing
 

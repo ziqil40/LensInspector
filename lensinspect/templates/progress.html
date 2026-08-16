@@ -31,9 +31,10 @@
   </div>
 
   <div style="color:var(--muted); font-size:0.92rem;">
-    <strong>{{ '{:,}'.format(m['left']) }}</strong>
-    cutout{{ '' if m['left'] == 1 else 's' }} left of
-    <strong>{{ '{:,}'.format(m['total']) }}</strong>.
+    You have graded <strong>{{ '{:,}'.format(m['graded']) }}</strong> of
+    <strong>{{ '{:,}'.format(m['available']) }}</strong>
+    {%- if m['left'] %}, with <strong>{{ '{:,}'.format(m['left']) }}</strong>
+    left{% endif %}.
   </div>
 
 
