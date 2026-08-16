@@ -55,16 +55,10 @@
              style="width: {{ mine['percent'] }}%;"></div>
       </div>
       <div style="color:var(--muted); font-size:0.86rem; margin-top:7px;">
-        You have graded <strong>{{ mine['graded'] }}</strong> of
-        <strong>{{ group['n_candidates'] }}</strong>
-        {%- if mine['skipped'] %}, {{ mine['skipped'] }} left unsure{% endif %}.
+        <strong>{{ '{:,}'.format(mine['left']) }}</strong>
+        cutout{{ '' if mine['left'] == 1 else 's' }} left of
+        <strong>{{ '{:,}'.format(group['n_candidates']) }}</strong>.
       </div>
-      {% if group['shared']['capped'] %}
-      <div style="color:var(--dim); font-size:0.86rem; margin-top:4px;">
-        <strong>{{ '{:,}'.format(group['shared']['left']) }}</strong> left for
-        everyone ({{ group['shared']['percent'] }}% finished)
-      </div>
-      {% endif %}
     </div>
 
     <div class="foot">

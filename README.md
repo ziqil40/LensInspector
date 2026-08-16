@@ -183,12 +183,12 @@ N=10, nothing retires early, since each person votes at most once per object.
 Redundancy still comes from several people grading the same object, and the
 agreement between them is the result.
 
-**Everyone sees how far the group has got.** When a cap is set there is a real
-finishing line, so alongside each person's own progress the app shows the shared
-figure — *"1,842 cutouts left for the group — 158 of 2,000 finished (7.9%)"* —
-on the group list, the grading header, the summary and the progress page. The
-grading header updates as people work, since the queue response carries it.
-Without a cap there is no finishing line and the shared bar is hidden.
+**The progress bar measures the job, not your keystrokes.** An object retired by
+other people has left your queue and you will never be asked for it, so it counts
+as done for you too — with a cap of 10, someone who has graded nothing still sees
+their bar move as the rest of the group settles objects. Every page shows the
+same single figure, *"1,842 of 2,000 left"*, and the grading header refreshes as
+people work.
 
 ### Adding cutouts while people are grading
 

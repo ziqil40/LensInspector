@@ -82,9 +82,17 @@ def my_progress(
         "skipped": skipped,
         "unseen": max(0, total - touched - retired_unseen),
         "retired": retired_unseen,
+        # What is still waiting for this person: objects nobody has settled and
+        # they have not answered, plus their own parked "unsure" ones. Anything
+        # retired by other people counts as done -- it has left their queue and
+        # they will never be asked for it, so the bar should credit it.
+        "left": max(0, total - touched - retired_unseen) + skipped,
         "counts": {g: counts.get(g, 0) for g in GRADES},
-        "percent": round(100.0 * graded / total, 1) if total else 0.0,
-        "finished": total > 0 and graded >= total,
+        "percent": round(
+            100.0 * (total - (max(0, total - touched - retired_unseen) + skipped)) / total, 1
+        ) if total else 0.0,
+        "finished": total > 0
+        and (max(0, total - touched - retired_unseen) + skipped) == 0,
         "submitted_at": submitted["submitted_at"] if submitted else None,
     }
 
