@@ -91,6 +91,15 @@ Every grade is saved and counted the moment you press the key. There is no Submi
 
 Come back whenever you like and carry on where you stopped. You can also change an earlier answer at any time — nothing is ever locked.
 
+## How the list is shared out
+
+The cutouts come to you in a **random order**, and everybody gets a different one. You are not working through the same sequence as the person next to you.
+
+Once a cutout has been graded by enough people — **10** of you on the Q1 list — it **retires**. It is finished, and nobody is shown it again.
+
+> **[callout]**
+> **So the progress bar can move without you.** It counts the cutouts that have *not* retired yet, across everyone. Other people are grading at the same time, and every cutout they finish is one fewer left — so the bar creeps forward even during a session where you have graded nothing yourself. That is working as intended, not a glitch.
+
 ## Worth knowing
 
 - **You cannot break anything.** Every answer saves as you go. Close the tab whenever; you will pick up where you left off.
