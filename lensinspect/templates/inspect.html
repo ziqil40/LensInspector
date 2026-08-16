@@ -254,10 +254,11 @@
   // ---- rendering --------------------------------------------------------
 
   function renderProgress() {
-    // One number: how much of the job is left. Objects other people have settled
-    // are already out of this person's queue, so they count as done here too.
+    // Your own grading. The denominator is what you can still be offered, so it
+    // shrinks when objects retire elsewhere -- it never asks for more than exists.
     const p = state.progress;
-    let text = p.left.toLocaleString() + ' of ' + p.total.toLocaleString() + ' left';
+    let text = p.graded.toLocaleString() + ' of ' +
+               p.available.toLocaleString() + ' graded';
     if (p.skipped) text += ' · ' + p.skipped + ' unsure';
     el.progress.textContent = text;
   }

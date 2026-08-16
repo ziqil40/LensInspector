@@ -12,8 +12,8 @@
    to go and do. #}
 <div class="stats stats-pair">
   <div class="stat">
-    <div class="stat-value">{{ '{:,}'.format(progress['left']) }}</div>
-    <div class="stat-label">cutouts left</div>
+    <div class="stat-value">{{ '{:,}'.format(progress['graded']) }}</div>
+    <div class="stat-label">graded of {{ '{:,}'.format(progress['available']) }}</div>
   </div>
 
   {% if progress['skipped'] %}
