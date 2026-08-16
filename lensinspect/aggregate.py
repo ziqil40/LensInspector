@@ -76,23 +76,40 @@ def my_progress(
         (group_id, inspector_id),
     ).fetchone()
 
+    unseen = max(0, total - touched - retired_unseen)
+
+    if cap > 0:
+        # A capped group has a real finishing line -- an object is done when it has
+        # been graded ``cap`` times and retires -- and it is the *same* line for
+        # everybody. So "left" is how many objects have not retired, identical in
+        # every account. One person grading all of them settles nothing on their
+        # own: the others still owe it a grade, and the bar must not pretend the
+        # work is finished.
+        done = db.execute(
+            """
+            SELECT COUNT(*) AS n FROM candidates c
+             WHERE c.group_id = ?
+               AND (SELECT COUNT(*) FROM votes v
+                     WHERE v.candidate_id = c.id AND v.grade != ?) >= ?
+            """,
+            (group_id, SKIP, cap),
+        ).fetchone()["n"]
+        left = total - done
+    else:
+        # No cap, so no shared finishing line: fall back to this person's own
+        # outstanding work, including anything they parked as unsure.
+        left = unseen + skipped
+
     return {
         "total": total,
         "graded": graded,
         "skipped": skipped,
-        "unseen": max(0, total - touched - retired_unseen),
+        "unseen": unseen,
         "retired": retired_unseen,
-        # What is still waiting for this person: objects nobody has settled and
-        # they have not answered, plus their own parked "unsure" ones. Anything
-        # retired by other people counts as done -- it has left their queue and
-        # they will never be asked for it, so the bar should credit it.
-        "left": max(0, total - touched - retired_unseen) + skipped,
+        "left": left,
         "counts": {g: counts.get(g, 0) for g in GRADES},
-        "percent": round(
-            100.0 * (total - (max(0, total - touched - retired_unseen) + skipped)) / total, 1
-        ) if total else 0.0,
-        "finished": total > 0
-        and (max(0, total - touched - retired_unseen) + skipped) == 0,
+        "percent": round(100.0 * (total - left) / total, 1) if total else 0.0,
+        "finished": total > 0 and left == 0,
         "submitted_at": submitted["submitted_at"] if submitted else None,
     }
 
