@@ -173,12 +173,31 @@ stable across requests and restarts — otherwise "carry on where you left off"
 would hand people a freshly shuffled list every time.
 
 **Retire an object after N grades** (`max_votes`, 0 = never) drops an object from
-everyone's queue once N people have graded it. Note it only bites when there are
-*more* graders than N: with 10 people and N=10 nothing retires early, since each
-person can only vote once per object.
+everyone's queue once N people have graded it — nobody is offered it again, and
+it stops counting toward anyone's "not looked at yet". Skips do not count: an
+object three people were unsure about is not settled, so it stays in circulation.
+
+Note the cap only bites when there are *more* graders than N. With 10 people and
+N=10, nothing retires early, since each person votes at most once per object.
 
 Redundancy still comes from several people grading the same object, and the
 agreement between them is the result.
+
+### Adding cutouts while people are grading
+
+Appending to a group mid-run is safe and needs no restart — upload a CSV under
+**Add more candidates** on the group's admin page, or re-run `lensinspect.ingest`
+against the same group. Objects already present are left alone, so no grade is
+disturbed.
+
+On a shuffled group the new objects **interleave** into each grader's existing
+order rather than landing at the end, because the sort key is a hash of the
+object rather than its position. Someone halfway through will start seeing new
+cutouts straight away, mixed in with what they had left, and the relative order
+of everything they had not yet reached is unchanged.
+
+The only visible side effect is that the group got bigger: a grader who was at
+100% will drop back below it, which is correct — there is genuinely more to do.
 
 ### Nothing to submit
 
