@@ -254,16 +254,11 @@
   // ---- rendering --------------------------------------------------------
 
   function renderProgress() {
+    // One number: how much of the job is left. Objects other people have settled
+    // are already out of this person's queue, so they count as done here too.
     const p = state.progress;
-    let text = p.graded + ' of ' + p.total + ' graded';
+    let text = p.left.toLocaleString() + ' of ' + p.total.toLocaleString() + ' left';
     if (p.skipped) text += ' · ' + p.skipped + ' unsure';
-    if (p.unseen) text += ' · ' + p.unseen + ' not seen yet';
-    // How much is left for the group, not just for this person: their own count
-    // says nothing about whether the list as a whole is nearly done.
-    const g = state.shared;
-    if (g && g.capped) {
-      text += ' · ' + g.left.toLocaleString() + ' left for everyone';
-    }
     el.progress.textContent = text;
   }
 

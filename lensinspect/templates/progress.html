@@ -31,31 +31,11 @@
   </div>
 
   <div style="color:var(--muted); font-size:0.92rem;">
-    You have graded <strong>{{ m['graded'] }}</strong> of
-    <strong>{{ m['total'] }}</strong>
-    {%- if m['skipped'] %}, with <strong>{{ m['skipped'] }}</strong> still marked
-    unsure{% endif %}
-    {%- if m['unseen'] %}, and <strong>{{ m['unseen'] }}</strong> not looked at
-    yet{% endif %}.
+    <strong>{{ '{:,}'.format(m['left']) }}</strong>
+    cutout{{ '' if m['left'] == 1 else 's' }} left of
+    <strong>{{ '{:,}'.format(m['total']) }}</strong>.
   </div>
 
-  {% set sh = row['shared'] %}
-  {% if sh['capped'] %}
-  <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
-    <div style="color:var(--dim); font-size:0.82rem; text-transform:uppercase;
-                letter-spacing:0.04em; margin-bottom:7px;">Everyone together</div>
-    <div class="bar">
-      <div class="bar-fill {% if sh['left'] == 0 %}is-done{% endif %}"
-           style="width: {{ sh['percent'] }}%;"></div>
-    </div>
-    <div style="color:var(--muted); font-size:0.9rem; margin-top:8px;">
-      <strong>{{ '{:,}'.format(sh['left']) }}</strong>
-      cutout{{ '' if sh['left'] == 1 else 's' }} left for the group —
-      {{ '{:,}'.format(sh['done']) }} of {{ '{:,}'.format(sh['total']) }} have
-      reached {{ sh['cap'] }} grades and retired.
-    </div>
-  </div>
-  {% endif %}
 
   <div class="row" style="margin-top:16px;">
     {% if m['unseen'] %}

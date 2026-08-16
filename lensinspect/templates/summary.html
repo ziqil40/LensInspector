@@ -12,8 +12,8 @@
    to go and do. #}
 <div class="stats stats-pair">
   <div class="stat">
-    <div class="stat-value">{{ progress['graded'] }}</div>
-    <div class="stat-label">graded of {{ progress['total'] }}</div>
+    <div class="stat-value">{{ '{:,}'.format(progress['left']) }}</div>
+    <div class="stat-label">cutouts left</div>
   </div>
 
   {% if progress['skipped'] %}
@@ -32,31 +32,11 @@
 </div>
 
 <div class="card">
-  <div class="section-title" style="margin-top:0;">Your progress</div>
   <div class="bar" style="margin:10px 0 16px;">
     <div class="bar-fill {% if progress['finished'] %}is-done{% endif %}"
          style="width: {{ progress['percent'] }}%;"></div>
   </div>
 
-  {% if group_progress['capped'] %}
-  {# The same figures for everyone: how much of the group is settled. Worth
-     showing to each grader, since their own count says nothing about whether the
-     list as a whole is close to finished. #}
-  <div class="section-title">Everyone's progress</div>
-  <div class="bar" style="margin:10px 0 8px;">
-    <div class="bar-fill {% if group_progress['left'] == 0 %}is-done{% endif %}"
-         style="width: {{ group_progress['percent'] }}%;"></div>
-  </div>
-  <p style="color:var(--muted); font-size:0.92rem; margin:0 0 16px;">
-    <strong>{{ '{:,}'.format(group_progress['left']) }}</strong>
-    cutout{{ '' if group_progress['left'] == 1 else 's' }} left for the group —
-    {{ '{:,}'.format(group_progress['done']) }} of
-    {{ '{:,}'.format(group_progress['total']) }} finished
-    ({{ group_progress['percent'] }}%). An object is finished once
-    <strong>{{ group_progress['cap'] }}</strong> people have graded it, after
-    which nobody is shown it again.
-  </p>
-  {% endif %}
 
   <div class="section-title">Your grades</div>
   <dl class="meta">
