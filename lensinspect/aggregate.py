@@ -460,3 +460,46 @@ def vote_records(
         record["note"] = record["note"] or ""
         record["objname"] = record["objname"] or ""
         yield {col: record.get(col, "") for col in VOTE_COLUMNS}
+
+
+# --------------------------------------------------------------------------
+# Practice gate
+# --------------------------------------------------------------------------
+
+
+def practice_status(db: sqlite3.Connection, inspector_id: int) -> dict[str, Any]:
+    """Whether this person has worked through the practice group.
+
+    Real groups are gated on this: the practice set is where someone learns what
+    an arc looks like and calibrates against the expert answers, and grades cast
+    before that are the ones most likely to be wrong. It is eight objects.
+
+    A skip does not count -- parking all eight would otherwise "finish" it without
+    the person ever committing to an answer or seeing whether they agreed.
+
+    Returns ``required=False`` when no practice group exists, so a deployment
+    without one is not locked out of its own data.
+    """
+    row = db.execute(
+        "SELECT id, slug, name,"
+        " (SELECT COUNT(*) FROM candidates c WHERE c.group_id = g.id) AS total"
+        " FROM groups g WHERE g.is_example = 1 ORDER BY g.id LIMIT 1"
+    ).fetchone()
+    if row is None or row["total"] == 0:
+        return {"required": False, "done": True, "graded": 0, "total": 0,
+                "slug": None, "name": None}
+
+    graded = db.execute(
+        "SELECT COUNT(*) AS n FROM votes v JOIN candidates c ON c.id = v.candidate_id"
+        " WHERE c.group_id = ? AND v.inspector_id = ? AND v.grade != ?",
+        (row["id"], inspector_id, SKIP),
+    ).fetchone()["n"]
+
+    return {
+        "required": True,
+        "done": graded >= row["total"],
+        "graded": graded,
+        "total": row["total"],
+        "slug": row["slug"],
+        "name": row["name"],
+    }

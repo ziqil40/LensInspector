@@ -102,6 +102,12 @@ Set `is_example = 1` on a group and it becomes a tutorial: after each answer the
 grader is shown how an expert graded it, so they can calibrate. Nothing in it
 counts.
 
+**It is also a gate.** While a practice group exists, non-admin graders cannot
+open any real group until they have graded every object in it — enforced on the
+page, the queue API and the vote API, not just hidden in the UI. Skips do not
+count, or someone could park all eight without ever committing to an answer.
+Admins are exempt, and a deployment with no practice group gates nothing.
+
 The teaching text lives in each candidate's `extra` JSON:
 
 | Key | Meaning |

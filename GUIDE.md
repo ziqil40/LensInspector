@@ -69,7 +69,9 @@ dozen of each is worth more than any description.
 
 ### 1. Try the practice group first
 
-On the group list there is a group called **Practice**. It has eight real examples, and after each one you see how an expert graded it. Nothing in it counts. Start there.
+On the group list there is a group called **Practice**. It has eight real examples, and after each one you see how an expert graded it. Nothing in it counts.
+
+**You have to finish it before the real groups open.** It takes a couple of minutes, and it is how you calibrate before your grades start counting — so it is not busywork.
 
 ### 2. Then pick a real group and work down it
 

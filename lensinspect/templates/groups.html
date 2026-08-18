@@ -18,16 +18,32 @@
 </div>
 {% endif %}
 
+{% if practice['required'] and not practice['done'] and not inspector['is_admin'] %}
+<div class="callout" style="margin-bottom:20px;">
+  <strong>Start with the practice group.</strong> It is
+  {{ practice['total'] }} real objects with the expert answer shown after each
+  one, and it takes a couple of minutes — it is how you calibrate before your
+  grades start counting. The other groups unlock once you have finished it
+  ({{ practice['graded'] }} of {{ practice['total'] }} done).
+</div>
+{% endif %}
+
 <div class="group-grid">
   {% for group in groups %}
   {% set mine = group['mine'] %}
+  {% if group['locked_by_practice'] %}
+  <div class="group-card is-locked" title="Finish the practice group first">
+  {% else %}
   <a class="group-card" href="{{ url_for('main.inspect_page', slug=group['slug']) }}">
+  {% endif %}
     <div class="row" style="justify-content:space-between; align-items:flex-start;">
       <h3>{{ group['name'] }}</h3>
       {% if group['is_example'] %}
         <span class="pill">Practice</span>
       {% elif group['is_sandbox'] %}
         <span class="pill">{{ 'Trial — only you can see this' if group['is_hidden'] else 'Trial — nothing recorded' }}</span>
+      {% elif group['locked_by_practice'] %}
+        <span class="pill pill-warn">Practice first</span>
       {% elif not group['is_open'] %}
         <span class="pill pill-quiet">Closed</span>
       {% elif mine['finished'] %}
@@ -68,7 +84,13 @@
       </span>
     </div>
     {% endif %}
-  </a>
+
+    {% if group['locked_by_practice'] %}
+    <div style="color:var(--warn); font-size:0.86rem; margin-top:4px;">
+      Locked until you finish the practice group.
+    </div>
+    {% endif %}
+  {% if group['locked_by_practice'] %}</div>{% else %}</a>{% endif %}
   {% endfor %}
 </div>
 

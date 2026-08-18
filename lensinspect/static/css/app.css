@@ -698,3 +698,14 @@ a.stat-link:focus-visible {
 
 .coach.is-wrong { border-color: #7d5a30; background: #2a2010; color: #f2ddbd; }
 .coach.is-wrong h3 { color: var(--warn); }
+
+/* A group waiting on the practice run: still readable, clearly not clickable. */
+.group-card.is-locked {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.group-card.is-locked:hover {
+  border-color: var(--line);
+  transform: none;
+}
