@@ -179,7 +179,38 @@ _ADDED_COLUMNS: tuple[tuple[str, str, str], ...] = (
     # bites when there are more graders than the target, and stops late joiners
     # re-grading what is already settled.
     ("groups", "max_votes", "INTEGER NOT NULL DEFAULT 0"),
+    # When this person first completed the practice group. Recorded once and never
+    # cleared: the practice set is meant to be repeated, and re-running it must not
+    # cost someone access to the real groups half way through a session.
+    ("inspectors", "practice_done_at", "TEXT"),
 )
+
+
+def _backfill_practice_done(conn: sqlite3.Connection) -> None:
+    """Stamp everyone who had already finished the practice before this column.
+
+    Their votes prove they did it. Without this one-off pass, adding the column
+    would lock out every existing grader.
+    """
+    group = conn.execute(
+        "SELECT id FROM groups WHERE is_example = 1 ORDER BY id LIMIT 1"
+    ).fetchone()
+    if group is None:
+        return
+    total = conn.execute(
+        "SELECT COUNT(*) AS n FROM candidates WHERE group_id = ?", (group["id"],)
+    ).fetchone()["n"]
+    if not total:
+        return
+    done = """
+        SELECT COUNT(*) FROM votes v JOIN candidates c ON c.id = v.candidate_id
+        WHERE c.group_id = ? AND v.inspector_id = inspectors.id AND v.grade != 'S'
+    """
+    conn.execute(
+        f"UPDATE inspectors SET practice_done_at = created_at"
+        f" WHERE practice_done_at IS NULL AND ({done}) >= ?",
+        (group["id"], total),
+    )
 
 
 def _migrate(conn: sqlite3.Connection) -> None:
@@ -187,6 +218,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
         existing = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
         if column not in existing:
             conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {spec}")
+            if (table, column) == ("inspectors", "practice_done_at"):
+                _backfill_practice_done(conn)
 
 
 def init_db(db_path: str) -> None:
