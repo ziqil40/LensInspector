@@ -377,6 +377,11 @@ def api_vote(slug: str):
             """,
             (candidate["id"], inspector["id"], grade, flagged, note, now, now),
         )
+        # Completing the practice unlocks the real groups permanently, so record
+        # it here rather than inferring it from the current vote count -- people
+        # are encouraged to run the practice again, and that wipes the votes.
+        if group["is_example"]:
+            aggregate.mark_practice_done(db, inspector["id"], now)
 
     return jsonify(
         {"ok": True, "progress": aggregate.my_progress(db, group["id"], inspector["id"])}

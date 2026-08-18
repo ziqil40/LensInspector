@@ -108,6 +108,13 @@ page, the queue API and the vote API, not just hidden in the UI. Skips do not
 count, or someone could park all eight without ever committing to an answer.
 Admins are exempt, and a deployment with no practice group gates nothing.
 
+Completion is stamped on the grader (`inspectors.practice_done_at`) rather than
+recomputed from their current votes, because a practice group is usually also a
+sandbox: "Start over" wipes the votes, and inferring the gate from them would
+punish someone for revising. The stamp is written once and never cleared, and
+graders who finished before the column existed are backfilled from their votes
+on first start.
+
 The teaching text lives in each candidate's `extra` JSON:
 
 | Key | Meaning |

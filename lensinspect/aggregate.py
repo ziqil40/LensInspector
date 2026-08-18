@@ -467,6 +467,43 @@ def vote_records(
 # --------------------------------------------------------------------------
 
 
+def _practice_group(db: sqlite3.Connection) -> Optional[sqlite3.Row]:
+    """The group that gates the real ones: the first practice group, or None."""
+    return db.execute(
+        "SELECT id, slug, name FROM groups WHERE is_example = 1 ORDER BY id LIMIT 1"
+    ).fetchone()
+
+
+def mark_practice_done(
+    db: sqlite3.Connection, inspector_id: int, when: str
+) -> None:
+    """Stamp this person as having completed the practice, if they just have.
+
+    Called after every practice vote. ``AND practice_done_at IS NULL`` keeps the
+    first completion as the recorded one, and means this is safe to call on each
+    vote of a repeat run.
+    """
+    group = _practice_group(db)
+    if group is None:
+        return
+    total = db.execute(
+        "SELECT COUNT(*) AS n FROM candidates WHERE group_id = ?", (group["id"],)
+    ).fetchone()["n"]
+    if not total:
+        return
+    graded = db.execute(
+        "SELECT COUNT(*) AS n FROM votes v JOIN candidates c ON c.id = v.candidate_id"
+        " WHERE c.group_id = ? AND v.inspector_id = ? AND v.grade != ?",
+        (group["id"], inspector_id, SKIP),
+    ).fetchone()["n"]
+    if graded >= total:
+        db.execute(
+            "UPDATE inspectors SET practice_done_at = ?"
+            " WHERE id = ? AND practice_done_at IS NULL",
+            (when, inspector_id),
+        )
+
+
 def practice_status(db: sqlite3.Connection, inspector_id: int) -> dict[str, Any]:
     """Whether this person has worked through the practice group.
 
@@ -495,9 +532,17 @@ def practice_status(db: sqlite3.Connection, inspector_id: int) -> dict[str, Any]
         (row["id"], inspector_id, SKIP),
     ).fetchone()["n"]
 
+    # Completion is a fact about the person, not about their current vote count:
+    # once stamped it stays stamped, so pressing "Start over" on the practice --
+    # which is encouraged -- never takes the real groups away again.
+    stamped = db.execute(
+        "SELECT practice_done_at FROM inspectors WHERE id = ?", (inspector_id,)
+    ).fetchone()["practice_done_at"]
+
     return {
         "required": True,
-        "done": graded >= row["total"],
+        "done": bool(stamped) or graded >= row["total"],
+        "done_at": stamped,
         "graded": graded,
         "total": row["total"],
         "slug": row["slug"],

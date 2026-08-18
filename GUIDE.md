@@ -73,6 +73,8 @@ On the group list there is a group called **Practice**. It has eight real exampl
 
 **You have to finish it before the real groups open.** It takes a couple of minutes, and it is how you calibrate before your grades start counting — so it is not busywork.
 
+Once you have been through it, it stays unlocked. Come back and run the practice again whenever you want a refresher — starting it over does not close the real groups again.
+
 ### 2. Then pick a real group and work down it
 
 Grade each object as it comes. If you are not sure about one, press `s` and move on — that parks it for a second look, it does not answer it.
