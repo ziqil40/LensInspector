@@ -100,6 +100,23 @@ def _install_shuffle_key(
     db.create_function("shuffle_key", 1, shuffle_key, deterministic=True)
 
 
+def _practice_blocks(group: sqlite3.Row) -> Optional[dict[str, Any]]:
+    """The practice status if it should stop this person entering ``group``.
+
+    Real groups only: the practice set itself has to be reachable, and the trial
+    sandbox exists to be poked at. Returns None when they are free to proceed.
+    """
+    if group["is_example"] or group["is_sandbox"]:
+        return None
+    inspector = current_inspector()
+    if inspector is None or inspector["is_admin"]:
+        return None
+    status = aggregate.practice_status(get_db(), inspector["id"])
+    if not status["required"] or status["done"]:
+        return None
+    return status
+
+
 def _payload(group: sqlite3.Row, row: sqlite3.Row) -> dict[str, Any]:
     item = {
         "cutoutname": row["cutoutname"],
@@ -133,10 +150,17 @@ def group_list():
     db = get_db()
     inspector = current_inspector()
     groups = [g for g in aggregate.group_overview(db) if can_see_group(g, inspector)]
+    practice = aggregate.practice_status(db, inspector["id"])
     for group in groups:
         group["mine"] = aggregate.my_progress(db, group["id"], inspector["id"])
         group["shared"] = aggregate.group_progress(db, group["id"])
-    return render_template("groups.html", groups=groups, inspector=inspector)
+        group["locked_by_practice"] = bool(
+            practice["required"] and not practice["done"]
+            and not group["is_example"] and not group["is_sandbox"]
+            and not inspector["is_admin"]
+        )
+    return render_template("groups.html", groups=groups, inspector=inspector,
+                           practice=practice)
 
 
 @bp.route("/guide")
@@ -185,6 +209,16 @@ def inspect_page(slug: str):
     group = _group_or_404(slug)
     inspector = current_inspector()
 
+    blocked = _practice_blocks(group)
+    if blocked:
+        flash(
+            f"Please finish the {blocked['total']}-object practice group first — "
+            f"you have graded {blocked['graded']}. It takes a couple of minutes and "
+            "is how you calibrate against the expert answers.",
+            "error",
+        )
+        return redirect(url_for("main.inspect_page", slug=blocked["slug"]))
+
     phase = request.args.get("phase", "main")
     if phase not in ("main", "review"):
         phase = "main"
@@ -225,6 +259,10 @@ def api_queue(slug: str):
     db = get_db()
     group = _group_or_404(slug)
     inspector = current_inspector()
+
+    if _practice_blocks(group):
+        return jsonify({"error": "Finish the practice group first.",
+                        "candidates": []}), 403
 
     phase = request.args.get("phase", "main")
     try:
@@ -302,6 +340,11 @@ def api_vote(slug: str):
 
     if not group["is_open"]:
         return jsonify({"error": "This group has been closed by the organiser."}), 403
+    if _practice_blocks(group):
+        return (
+            jsonify({"error": "Finish the practice group before grading this one."}),
+            403,
+        )
 
     payload = request.get_json(silent=True) or {}
     cutoutname = str(payload.get("cutoutname", "")).strip()
