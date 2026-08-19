@@ -251,6 +251,19 @@ def export_consensus(slug: str):
     except ValueError:
         min_votes = 1
 
+    # ?systems=1 collapses catalogue entries that sit on top of each other into
+    # one row. The candidate list is preselected against stars and spurious
+    # detections but not deduplicated by position, so one scene can appear as two
+    # entries a fraction of an arcsecond apart; the paper wants one row per object.
+    if request.args.get("systems", "") == "1":
+        rows = aggregate.system_rows(
+            db, group["id"], only_conflicts=only_conflicts, min_votes=min_votes
+        )
+        name = f"{group['slug']}_systems" + ("_conflicts" if only_conflicts else "")
+        return _csv_response(
+            aggregate.SYSTEM_COLUMNS, aggregate.system_records(rows), f"{name}.csv"
+        )
+
     rows = aggregate.consensus_rows(
         db, group["id"], only_conflicts=only_conflicts, min_votes=min_votes
     )
