@@ -15,6 +15,7 @@ Conventions
 
 from __future__ import annotations
 
+import math
 import sqlite3
 from collections import Counter
 from typing import Any, Iterator, Optional
@@ -400,6 +401,240 @@ def consensus_records(rows: list[dict[str, Any]]) -> Iterator[dict[str, Any]]:
     """Flatten consensus rows to plain CSV-ready dicts."""
     for row in rows:
         record = {col: row.get(col, "") for col in CONSENSUS_COLUMNS}
+        for key, value in record.items():
+            if isinstance(value, bool):
+                record[key] = "true" if value else "false"
+            elif value is None:
+                record[key] = ""
+        yield record
+
+
+# --------------------------------------------------------------------------
+# Collapsing co-located entries into one system
+# --------------------------------------------------------------------------
+
+#: Two entries this close on the sky are the same scene to a grader. The stamps
+#: are 96 px at ~0.1"/px, so a pair 3" apart is a ~30 px shift of a ~10" field.
+SYSTEM_RADIUS_ARCSEC = 3.0
+
+SYSTEM_COLUMNS: tuple[str, ...] = (
+    "system_id",
+    "n_entries",
+    "members",
+    "max_separation_arcsec",
+    "framing_disagreement",
+    "cutoutname",
+    "objname",
+    "ra",
+    "dec",
+    "score",
+    "rank",
+    "n_votes",
+    "votes_A",
+    "votes_B",
+    "votes_C",
+    "votes_X",
+    "n_unsure",
+    "unsure_by",
+    "majority_grade",
+    "mean_grade",
+    "agreement",
+    "spread",
+    "conflict",
+    "tied",
+    "lens_fraction",
+    "n_flagged",
+    "graders",
+    "notes",
+)
+
+
+def _separation_arcsec(ra1: float, dec1: float, ra2: float, dec2: float) -> float:
+    """Small-angle separation. Good to well under a mas at these scales."""
+    cos_dec = math.cos(math.radians((dec1 + dec2) / 2.0))
+    return math.hypot((ra1 - ra2) * cos_dec * 3600.0, (dec1 - dec2) * 3600.0)
+
+
+def _cluster_by_position(
+    rows: list[sqlite3.Row], radius_arcsec: float
+) -> list[list[int]]:
+    """Group row indices into systems by sky position, single-linkage.
+
+    Buckets on a grid one radius across and only compares within the 3x3
+    neighbourhood, so this stays linear instead of comparing all 2,000 x 2,000
+    pairs. Rows without coordinates are each their own system -- there is nothing
+    to match them on, and silently merging them would be worse than not merging.
+    """
+    step = radius_arcsec / 3600.0
+    parent = list(range(len(rows)))
+
+    def find(x: int) -> int:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    buckets: dict[tuple[int, int], list[int]] = {}
+    for i, row in enumerate(rows):
+        if row["ra"] is None or row["dec"] is None:
+            continue
+        cos_dec = max(math.cos(math.radians(row["dec"])), 1e-6)
+        key = (int(row["ra"] * cos_dec / step), int(row["dec"] / step))
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                for j in buckets.get((key[0] + dx, key[1] + dy), ()):
+                    sep = _separation_arcsec(
+                        row["ra"], row["dec"], rows[j]["ra"], rows[j]["dec"]
+                    )
+                    if sep <= radius_arcsec:
+                        a, b = find(i), find(j)
+                        if a != b:
+                            parent[a] = b
+        buckets.setdefault(key, []).append(i)
+
+    groups: dict[int, list[int]] = {}
+    for i in range(len(rows)):
+        groups.setdefault(find(i), []).append(i)
+    return list(groups.values())
+
+
+def system_rows(
+    db: sqlite3.Connection,
+    group_id: int,
+    radius_arcsec: float = SYSTEM_RADIUS_ARCSEC,
+    only_conflicts: bool = False,
+    min_votes: int = 0,
+) -> list[dict[str, Any]]:
+    """Consensus with co-located catalogue entries collapsed into one system.
+
+    The source catalogue is preselected against stars and spurious detections but
+    is not deduplicated by position, so a deblended pair a fraction of an arcsecond
+    apart survives as two entries whose cutouts show the same scene framed slightly
+    differently. Graded separately they are two rows; on the sky they are one
+    object, and one row per object is what a catalogue wants.
+
+    A grader who saw both framings still counts once, contributing their most
+    lens-like answer: if the same scene read as a lens under either framing, that
+    is what they saw. Where their two answers differed, ``framing_disagreement``
+    records it -- that is a measurement of how much the framing swayed people,
+    which is worth keeping rather than averaging away.
+    """
+    candidates = db.execute(
+        """
+        SELECT c.id, c.cutoutname, c.objname, c.ra, c.dec, c.score, c.rank
+        FROM candidates c
+        WHERE c.group_id = ?
+        ORDER BY c.rank IS NULL, c.rank ASC, c.score DESC, c.id ASC
+        """,
+        (group_id,),
+    ).fetchall()
+
+    vote_rows = db.execute(
+        """
+        SELECT v.candidate_id, v.grade, v.flagged, v.note, i.netid
+        FROM votes v
+        JOIN candidates c ON c.id = v.candidate_id
+        JOIN inspectors i ON i.id = v.inspector_id
+        WHERE c.group_id = ?
+        ORDER BY v.candidate_id, i.netid
+        """,
+        (group_id,),
+    ).fetchall()
+
+    by_candidate: dict[int, list[sqlite3.Row]] = {}
+    for row in vote_rows:
+        by_candidate.setdefault(row["candidate_id"], []).append(row)
+
+    out: list[dict[str, Any]] = []
+    for members in _cluster_by_position(candidates, radius_arcsec):
+        # Representative: the entry the model ranked highest, so the row keeps the
+        # name and rank the shortlist was built on.
+        members = sorted(
+            members,
+            key=lambda i: (
+                candidates[i]["rank"] is None,
+                candidates[i]["rank"] if candidates[i]["rank"] is not None else 0,
+                -(candidates[i]["score"] or 0.0),
+            ),
+        )
+        head = candidates[members[0]]
+
+        per_grader: dict[str, list[sqlite3.Row]] = {}
+        for i in members:
+            for vote in by_candidate.get(candidates[i]["id"], []):
+                per_grader.setdefault(vote["netid"], []).append(vote)
+
+        grades: list[str] = []
+        graded_by: list[str] = []
+        unsure: list[str] = []
+        disagreed: list[str] = []
+        n_flagged = 0
+        notes: list[str] = []
+        for netid in sorted(per_grader):
+            votes = per_grader[netid]
+            real = [v["grade"] for v in votes if v["grade"] != SKIP]
+            if len({v["grade"] for v in votes}) > 1:
+                disagreed.append(
+                    f"{netid}=" + "/".join(v["grade"] for v in votes)
+                )
+            n_flagged += sum(1 for v in votes if v["flagged"])
+            notes.extend(
+                f"{netid}: {v['note'].strip()}"
+                for v in votes
+                if v["note"] and v["note"].strip()
+            )
+            if real:
+                grades.append(max(real, key=lambda g: GRADE_VALUES[g]))
+                graded_by.append(netid)
+            else:
+                unsure.append(netid)
+
+        stats = _consensus_from_grades(grades)
+        if stats["n_votes"] < min_votes:
+            continue
+        if only_conflicts and not stats["conflict"]:
+            continue
+
+        seps = [
+            _separation_arcsec(
+                head["ra"], head["dec"], candidates[i]["ra"], candidates[i]["dec"]
+            )
+            for i in members[1:]
+            if head["ra"] is not None and candidates[i]["ra"] is not None
+        ]
+
+        out.append(
+            {
+                "system_id": head["cutoutname"],
+                "n_entries": len(members),
+                "members": " ".join(candidates[i]["cutoutname"] for i in members),
+                "max_separation_arcsec": round(max(seps), 3) if seps else 0.0,
+                "framing_disagreement": ",".join(disagreed),
+                "cutoutname": head["cutoutname"],
+                "objname": head["objname"] or "",
+                "ra": head["ra"],
+                "dec": head["dec"],
+                "score": head["score"],
+                "rank": head["rank"],
+                **stats,
+                "n_unsure": len(unsure),
+                "unsure_by": ",".join(unsure),
+                "n_flagged": n_flagged,
+                "graders": ",".join(
+                    f"{netid}={grade}" for netid, grade in zip(graded_by, grades)
+                ),
+                "notes": "; ".join(notes),
+            }
+        )
+
+    out.sort(key=lambda r: (r["rank"] is None, r["rank"] or 0, -(r["score"] or 0.0)))
+    return out
+
+
+def system_records(rows: list[dict[str, Any]]) -> Iterator[dict[str, Any]]:
+    """Flatten system rows to plain CSV-ready dicts."""
+    for row in rows:
+        record = {col: row.get(col, "") for col in SYSTEM_COLUMNS}
         for key, value in record.items():
             if isinstance(value, bool):
                 record[key] = "true" if value else "false"

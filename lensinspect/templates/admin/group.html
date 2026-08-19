@@ -11,7 +11,20 @@
       <a href="{{ url_for('main.inspect_page', slug=group['slug']) }}">Grade this group yourself</a>
     </div>
   </div>
-  {# Downloads live per person in the Inspectors table below, one file each. #}
+  {# Per-person downloads live in the Inspectors table below, one file each. #}
+  <div class="export-aside">
+    <div>
+      <a class="btn btn-quiet"
+         href="{{ url_for('admin.export_consensus', slug=group['slug']) }}">One row per cutout</a>
+      <a class="btn btn-quiet"
+         href="{{ url_for('admin.export_consensus', slug=group['slug'], systems=1) }}">One row per system</a>
+    </div>
+    <div class="muted" style="margin-top:6px;max-width:24em;">
+      Some cutouts sit on top of each other — the same scene catalogued twice,
+      framed a fraction of an arcsecond apart. The second file merges those into
+      one row, which is the one to publish.
+    </div>
+  </div>
 </div>
 
 <div class="stats">

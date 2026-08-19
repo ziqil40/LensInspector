@@ -709,3 +709,20 @@ a.stat-link:focus-visible {
   border-color: var(--line);
   transform: none;
 }
+
+/* Secondary action: reads as a button but does not compete with the primary. */
+.btn-quiet {
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid var(--border);
+  margin-right: 6px;
+}
+.btn-quiet:hover { background: var(--panel-2); }
+
+/* Export links plus their explanation, stacked and right-aligned in the header. */
+.export-aside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}

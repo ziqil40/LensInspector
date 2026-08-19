@@ -196,6 +196,30 @@ N=10, nothing retires early, since each person votes at most once per object.
 Redundancy still comes from several people grading the same object, and the
 agreement between them is the result.
 
+### One row per cutout, or one row per system
+
+A candidate list is usually preselected against stars and spurious detections but
+not deduplicated by position. A deblended pair a fraction of an arcsecond apart
+therefore survives as two catalogue entries — and since a 96 px stamp covers
+about 10", both cutouts show the same scene, framed a few pixels differently. The
+grader sees the same picture twice; the sky has one object.
+
+The results page offers both exports:
+
+| Download | Row per | Use for |
+|---|---|---|
+| **One row per cutout** | catalogue entry | auditing what each person was actually shown |
+| **One row per system** | object on the sky | the published catalogue |
+
+The merged export clusters entries within `SYSTEM_RADIUS_ARCSEC` (3", single
+linkage), keeps the highest-ranked entry as the representative, and pools the
+votes. A grader who saw both framings counts **once**, contributing their most
+lens-like answer — if the scene read as a lens either way, that is what they saw.
+Where their two answers differed, `framing_disagreement` records it rather than
+averaging it away: how much the framing swayed people is a measurement, not
+noise. `n_entries`, `members` and `max_separation_arcsec` keep the merge
+auditable.
+
 **Graders see their own progress; retirement is hidden from them.** A grader's
 bar counts the cutouts *they* have graded — *"100 of 1,842 graded"* — so it moves
 only when they grade something. Retirement shows up as a *shrinking denominator*
