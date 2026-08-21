@@ -16,6 +16,33 @@ import sys
 from lensinspect import create_app
 from lensinspect.db import connect
 
+
+def _load_dotenv() -> None:
+    """Read .env before the app reads its config.
+
+    start_inspector.sh already sources .env, but starting the server by hand --
+    which is easy to do while debugging -- then silently skipped it and generated
+    a throwaway SECRET_KEY, signing every grader out and keeping them that way
+    until someone noticed. Doing it here means no start path can regress.
+    Anything already exported wins, so the shell can still override the file.
+    """
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+    if not os.path.exists(path):
+        return
+    with open(path, encoding="utf-8") as handle:
+        for line in handle:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key = key.strip()
+            value = value.strip().strip("'\"")
+            if key and key not in os.environ:
+                os.environ[key] = value
+
+
+_load_dotenv()
+
 app = create_app()
 
 

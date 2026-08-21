@@ -107,60 +107,75 @@ def _should_be_admin(db: sqlite3.Connection, netid: str) -> bool:
 @bp.route("/login", methods=("GET", "POST"))
 def login():
     if request.method == "POST":
-        netid = normalise_netid(request.form.get("netid", ""))
+        typed = request.form.get("netid", "")
+        netid = normalise_netid(typed)
 
+        # Errors render against the field itself, and the box keeps what was
+        # typed. Flashing instead cleared the input and put the reason in a bar
+        # above the card, so a rejected sign-in looked exactly like a fresh page
+        # -- graders read that as "the button does nothing" and retried for
+        # minutes without ever seeing why.
+        error = None
         if not netid:
-            flash("Please enter your UCI NetID.", "error")
-        elif not NETID_RE.match(netid):
-            flash(
-                "That does not look like a UCI NetID. It should be 2-16 letters "
-                "and digits starting with a letter, e.g. 'jsmith2'.",
-                "error",
+            error = "Please enter your UCI NetID."
+        elif " " in netid:
+            error = (
+                "That looks like your full name. Your NetID is the short "
+                "username you sign in to UCI with \u2014 the part before "
+                "@uci.edu, with no spaces, e.g. 'jsmith2'."
             )
-        else:
-            db = get_db()
-            row = db.execute(
-                "SELECT * FROM inspectors WHERE netid = ?", (netid,)
-            ).fetchone()
+        elif not NETID_RE.match(netid):
+            error = (
+                "That does not look like a UCI NetID. It should be 2-16 letters "
+                "and digits starting with a letter, e.g. 'jsmith2'."
+            )
 
-            # A NetID nobody has used before is far more often a typo than a new
-            # grader -- and a typo silently creates a second account whose grades
-            # are stranded under a name nobody recognises. Confirm once first.
-            if row is None and request.form.get("confirm_new") != "yes":
-                return render_template(
-                    "login.html", confirm_netid=netid,
-                    next=request.args.get("next", ""),
+        if error is not None:
+            return render_template("login.html", error=error, typed=typed.strip())
+
+        db = get_db()
+        row = db.execute(
+            "SELECT * FROM inspectors WHERE netid = ?", (netid,)
+        ).fetchone()
+
+        # A NetID nobody has used before is far more often a typo than a new
+        # grader -- and a typo silently creates a second account whose grades
+        # are stranded under a name nobody recognises. Confirm once first.
+        if row is None and request.form.get("confirm_new") != "yes":
+            return render_template(
+                "login.html", confirm_netid=netid,
+                next=request.args.get("next", ""),
+            )
+
+        with db:
+            if row is None:
+                is_admin = 1 if _should_be_admin(db, netid) else 0
+                cur = db.execute(
+                    "INSERT INTO inspectors"
+                    " (netid, is_admin, created_at, last_seen_at)"
+                    " VALUES (?, ?, ?, ?)",
+                    (netid, is_admin, utcnow(), utcnow()),
+                )
+                inspector_id = cur.lastrowid
+            else:
+                inspector_id = row["id"]
+                # Promote if they were added to ADMIN_NETIDS after first use.
+                promote = 1 if netid in (current_app.config.get("ADMIN_NETIDS") or set()) else row["is_admin"]
+                db.execute(
+                    "UPDATE inspectors SET last_seen_at = ?, is_admin = ?"
+                    " WHERE id = ?",
+                    (utcnow(), promote, inspector_id),
                 )
 
-            with db:
-                if row is None:
-                    is_admin = 1 if _should_be_admin(db, netid) else 0
-                    cur = db.execute(
-                        "INSERT INTO inspectors"
-                        " (netid, is_admin, created_at, last_seen_at)"
-                        " VALUES (?, ?, ?, ?)",
-                        (netid, is_admin, utcnow(), utcnow()),
-                    )
-                    inspector_id = cur.lastrowid
-                else:
-                    inspector_id = row["id"]
-                    # Promote if they were added to ADMIN_NETIDS after first use.
-                    promote = 1 if netid in (current_app.config.get("ADMIN_NETIDS") or set()) else row["is_admin"]
-                    db.execute(
-                        "UPDATE inspectors SET last_seen_at = ?, is_admin = ?"
-                        " WHERE id = ?",
-                        (utcnow(), promote, inspector_id),
-                    )
+        session.clear()
+        session["inspector_id"] = inspector_id
+        session.permanent = True
 
-            session.clear()
-            session["inspector_id"] = inspector_id
-            session.permanent = True
-
-            target = request.args.get("next", "")
-            # Only accept same-site relative paths as a redirect target.
-            if not target.startswith("/") or target.startswith("//"):
-                target = url_for("main.group_list")
-            return redirect(target)
+        target = request.args.get("next", "")
+        # Only accept same-site relative paths as a redirect target.
+        if not target.startswith("/") or target.startswith("//"):
+            target = url_for("main.group_list")
+        return redirect(target)
 
     return render_template("login.html")
 
