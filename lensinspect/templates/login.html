@@ -38,9 +38,17 @@
   <form method="post">
     <div class="field">
       <label for="netid">UCI NetID</label>
-      <input class="input" id="netid" name="netid" autocomplete="username"
-             autocapitalize="off" autocorrect="off" spellcheck="false"
-             placeholder="e.g. jsmith2" autofocus required />
+      {# value= is what makes a rejected attempt legible: the box keeps what was
+         typed, so the person can see and correct it instead of facing an empty
+         field that looks like nothing happened. #}
+      <input class="input {% if error %}input-error{% endif %}" id="netid" name="netid"
+             autocomplete="username" autocapitalize="off" autocorrect="off"
+             spellcheck="false" placeholder="e.g. jsmith2" autofocus required
+             value="{{ typed or '' }}"
+             {% if error %}aria-invalid="true" aria-describedby="netid-error"{% endif %} />
+      {% if error %}
+      <div class="field-error" id="netid-error" role="alert">{{ error }}</div>
+      {% endif %}
       <div class="hint">Your NetID is the part before <code>@uci.edu</code>. It
         labels your grades so they can be told apart from everyone else's.</div>
     </div>

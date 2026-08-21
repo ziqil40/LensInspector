@@ -130,7 +130,7 @@ Underscore-prefixed keys are hidden from the metadata sidebar.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `SECRET_KEY` | random per start | Session signing key. **Set this**, or every restart signs everybody out |
+| `SECRET_KEY` | random per start | Session signing key. **Set this**, or every restart signs everybody out. `.env` is read automatically at startup, so this holds however the server is started |
 | `ADMIN_NETIDS` | *(empty)* | Comma-separated usernames allowed on the results pages. If empty, the first person to sign in becomes admin |
 | `INSPECTOR_DB` | `./data/inspector.db` | SQLite file |
 | `CUTOUT_DIR` | `./cutouts` | Fallback image directory for groups that do not set their own |

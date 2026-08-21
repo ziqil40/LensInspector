@@ -726,3 +726,21 @@ a.stat-link:focus-visible {
   align-items: flex-end;
   text-align: right;
 }
+
+/* Sign-in validation: the message belongs against the field that was rejected,
+   not in a banner above the card -- a rejected sign-in otherwise reads as the
+   page having done nothing at all. */
+.input-error {
+  border-color: var(--bad);
+  background: color-mix(in srgb, var(--bad) 8%, transparent);
+}
+.field-error {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--bad);
+  background: color-mix(in srgb, var(--bad) 10%, transparent);
+  color: var(--fg);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
