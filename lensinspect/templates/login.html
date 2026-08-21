@@ -35,6 +35,13 @@
 {% else %}
   <p class="lede">Enter your UCI NetID to start. There is no password.</p>
 
+  {# No `required` on the field, deliberately. HTML5 validation refuses to submit
+     an empty box and reports it through a native bubble -- and when that bubble
+     does not land (it is easy to miss, and browsers differ on whether it shows
+     at all), the button appears to do nothing whatsoever and no request is sent,
+     so there is nothing in the server log to diagnose either. Letting the form
+     always submit means the server always answers with a message on the page,
+     and every attempt leaves a trace. #}
   <form method="post">
     <div class="field">
       <label for="netid">UCI NetID</label>
@@ -43,7 +50,7 @@
          field that looks like nothing happened. #}
       <input class="input {% if error %}input-error{% endif %}" id="netid" name="netid"
              autocomplete="username" autocapitalize="off" autocorrect="off"
-             spellcheck="false" placeholder="e.g. jsmith2" autofocus required
+             spellcheck="false" placeholder="e.g. jsmith2" autofocus
              value="{{ typed or '' }}"
              {% if error %}aria-invalid="true" aria-describedby="netid-error"{% endif %} />
       {% if error %}
